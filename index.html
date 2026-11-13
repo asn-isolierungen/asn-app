@@ -122,6 +122,10 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
 .matrow input[type=checkbox]{width:24px;height:24px;flex:0 0 24px;margin:0}.matrow input.mq{width:110px;flex:0 0 110px}
 .matinfo{font-size:13px;background:#fff6e5;border-radius:8px;padding:6px 8px}
 .item.gelb{background:#fff6c7;border-color:#e3b800}
+.posblock{display:flex;flex-direction:column;gap:10px}
+#f-weitere .posblock{border:1.5px dashed var(--line,#c9d2db);border-radius:12px;padding:12px;margin-top:4px}
+.postitel{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:15px;color:#0a71b9}
+.postitel button{min-height:34px;padding:0 12px;font-size:13px}
 .item.gruen{background:#e7f6eb;border:2px solid #2e9d4f}
 .item.blink{animation:blink 2.4s ease}@keyframes blink{0%,100%{box-shadow:0 0 0 0 rgba(46,157,79,0)}25%,75%{box-shadow:0 0 0 6px rgba(46,157,79,.55)}}
 .geprueft{font-size:13px;font-weight:700;color:#1d7a3e}
@@ -183,7 +187,7 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
           <div class="stp-date" id="s-date"></div>
           <div id="s-state"></div>
           <div id="s-auftrag-w"><span class="lab" data-i18n="auftrag">Auftrag</span>
-            <div class="seg" id="s-auftrag"><button type="button" class="ghost small" data-v="normal" aria-pressed="false" data-i18n="auftragNormal">Normal</button><button type="button" class="ghost small" data-v="regie" aria-pressed="false" data-i18n="auftragRegie">Regie</button></div></div>
+            <div class="seg" id="s-auftrag"><button type="button" class="ghost small" data-v="normal" aria-pressed="true" data-i18n="auftragNormal">Normal</button><button type="button" class="ghost small" data-v="regie" aria-pressed="false" data-i18n="auftragRegie">Regie</button></div></div>
           <button class="big go" type="button" id="s-start" data-i18n="start">▶ Arbeitsbeginn</button>
           <div id="s-ende" hidden>
             <span class="lab" data-i18n="pauseHeute">Pause heute</span>
@@ -220,13 +224,18 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
           <div><span class="lab" data-i18n="art">Art</span>
             <div class="seg" id="f-typ"><button type="button" class="ghost small" data-v="vorher" aria-pressed="false" data-i18n="vorher">Vorher</button><button type="button" class="ghost small" data-v="nachher" aria-pressed="true" data-i18n="nachher">Nachher</button><button type="button" class="ghost small" data-v="allgemein" aria-pressed="false" data-i18n="allgemein">Allgemein</button></div></div>
           <div><span class="lab" data-i18n="auftrag">Auftrag</span>
-            <div class="seg" id="f-auftrag"><button type="button" class="ghost small" data-v="normal" aria-pressed="false" data-i18n="auftragNormal">Normal</button><button type="button" class="ghost small" data-v="regie" aria-pressed="false" data-i18n="auftragRegie">Regie</button></div></div>
+            <div class="seg" id="f-auftrag"><button type="button" class="ghost small" data-v="normal" aria-pressed="true" data-i18n="auftragNormal">Normal</button><button type="button" class="ghost small" data-v="regie" aria-pressed="false" data-i18n="auftragRegie">Regie</button></div></div>
           <div id="f-mat" class="matbox" hidden><span class="lab" data-i18n="regieMaterial">Material (Regie)</span><div id="f-mat-liste"></div>
             <label for="f-mat-sonst" data-i18n="sonstMaterial">Sonstiges Material</label><textarea id="f-mat-sonst" maxlength="500" data-i18n-ph="sonstMaterialPh" placeholder="z. B. 40 mm Thermisch, 5 m²"></textarea></div>
+          <div class="posblock" id="f-pos1">
+          <div class="postitel" id="f-pos1-titel" hidden><span>Position 1</span></div>
           <div class="grid2"><div><label for="f-nr" data-i18n="pendNr">Pendenz-Nr. (falls)</label><input id="f-nr" inputmode="numeric" placeholder="z. B. 27"></div><div><label for="f-bereich" data-i18n="bereich">Bereich / Raum</label><input id="f-bereich" placeholder="z. B. 1.OG Steigzone 3"></div></div>
           <div><label for="f-text" data-i18n="bemerkung">Bemerkung</label><input id="f-text" data-i18n-ph="bemerkungPh" placeholder="kurz, was man sieht"></div>
           <div class="thumbs" id="f-thumbs"></div>
           <span class="filebtn ghost"><span data-i18n="fotosAufnehmen">📷 Fotos aufnehmen / wählen</span><input type="file" id="f-files" accept="image/*" multiple></span>
+          </div>
+          <div id="f-weitere"></div>
+          <button class="ghost" type="button" id="f-plus" data-i18n="weiterePosition">➕ Weitere Position (Fotos + Notiz)</button>
           <button class="primary" type="button" id="f-send" data-i18n="fotosSenden">Fotos senden</button>
           <div class="msg" id="m-fotos" role="status"></div>
         </div>
@@ -633,7 +642,7 @@ $('s-start').onclick = async () => {
   const auf = segVal('s-auftrag'); if (!auf) { msg('m-stempel', t('auftragWaehlen'), 'err'); return; }
   const b = $('s-start'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …');
   const loc = await standort();
-  try { const r = await senden('stempelStart', { baustelle: bau(), loc, auftrag: auf }, { offline: true }); segReset('s-auftrag');
+  try { const r = await senden('stempelStart', { baustelle: bau(), loc, auftrag: auf }, { offline: true }); setSeg('s-auftrag', 'normal');
     msg('m-stempel', t('beginnGestempelt') + ' ' + (r.queued ? nowHM() + ' – ' + t('gespeichertWartet') : r.j.rapport.von), 'ok');
     if (!r.queued) await laden(); }
   catch (e) { msg('m-stempel', e.message, 'err'); }
@@ -663,7 +672,7 @@ $('s-ankunft').onclick = async () => {
   const nb = $('s-neu').value; if (!nb) { msg('m-stempel', t('neueWaehlen'), 'err'); $('s-neu').focus(); return; }
   const auf = segVal('s-auftrag'); if (!auf) { msg('m-stempel', t('auftragWaehlen'), 'err'); return; }
   const b = $('s-ankunft'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …'); const loc = await standort();
-  try { const r = await senden('wechselAnkunft', { baustelle: nb, loc, auftrag: auf }, { offline: true }); segReset('s-auftrag'); lsSet('asn-bau', nb); $('baustelle').value = nb;
+  try { const r = await senden('wechselAnkunft', { baustelle: nb, loc, auftrag: auf }, { offline: true }); setSeg('s-auftrag', 'normal'); lsSet('asn-bau', nb); $('baustelle').value = nb;
     msg('m-stempel', t('ankunftOk') + ' ' + bName(nb) + (r.queued ? ' – ' + t('gespeichertWartet') : ''), 'ok'); if (!r.queued) await laden(); }
   catch (e) { msg('m-stempel', e.message, 'err'); } b.disabled = false; render();
 };
@@ -759,28 +768,61 @@ function jpegB64(file) { // verkleinern (max. 1600 px), JPEG 80 %
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); ok(c.toDataURL('image/jpeg', .8).split(',')[1]); };
     img.onerror = () => no(new Error('Foto kann nicht gelesen werden')); img.src = u; });
 }
+// ---- Mehrere Positionen: jede mit eigenen Fotos, Pendenz-Nr., Bereich, Bemerkung (Position 1 = obere Felder) ----
+let fPosExtra = [];
+function fPosTitel() { $('f-pos1-titel').hidden = !fPosExtra.length; fPosExtra.forEach((p, i) => { p.titel.textContent = 'Position ' + (i + 2); }); }
+function fPosThumbs(p) { const box = p.thumbs; box.innerHTML = ''; (p.urls || []).forEach(u => URL.revokeObjectURL(u)); p.urls = [];
+  p.files.slice(0, 12).forEach((f, i) => { const w = el('div'); const im = el('img'); const u = URL.createObjectURL(f); p.urls.push(u); im.src = u; im.alt = 'Foto'; const b = el('button', '', '×'); b.type = 'button'; b.setAttribute('aria-label', 'Foto entfernen'); b.onclick = () => { p.files.splice(i, 1); fPosThumbs(p); }; w.append(im, b); box.append(w); });
+  if (p.files.length) box.append(el('span', 'meta', p.files.length + ' ' + t('fotosAusgewaehlt'))); }
+function fPosNeu() {
+  const p = { files: [] }, box = el('div', 'posblock'), kopf = el('div', 'postitel'); p.titel = el('span');
+  const weg = el('button', 'ghost small', '✕ ' + t('entfernen')); weg.type = 'button';
+  weg.onclick = () => { if (p.files.length && !confirm('Position mit ' + p.files.length + ' Foto(s) entfernen?')) return; (p.urls || []).forEach(u => URL.revokeObjectURL(u)); box.remove(); fPosExtra = fPosExtra.filter(x => x !== p); fPosTitel(); };
+  kopf.append(p.titel, weg);
+  const g = el('div', 'grid2'), d1 = el('div'), d2 = el('div');
+  d1.append(el('label', '', t('pendNr'))); p.nr = el('input'); p.nr.inputMode = 'numeric'; p.nr.placeholder = 'z. B. 27'; d1.append(p.nr);
+  d2.append(el('label', '', t('bereich'))); p.bereich = el('input'); p.bereich.placeholder = 'z. B. 1.OG Steigzone 3'; d2.append(p.bereich); g.append(d1, d2);
+  const d3 = el('div'); d3.append(el('label', '', t('bemerkung'))); p.text = el('input'); p.text.placeholder = t('bemerkungPh'); d3.append(p.text);
+  p.thumbs = el('div', 'thumbs');
+  const fb = el('span', 'filebtn ghost'); fb.append(el('span', '', t('fotosAufnehmen'))); const inp = el('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+  inp.onchange = e => { p.files.push(...e.target.files); e.target.value = ''; fPosThumbs(p); }; fb.append(inp);
+  box.append(kopf, g, d3, p.thumbs, fb); $('f-weitere').append(box); fPosExtra.push(p); fPosTitel();
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+$('f-plus').onclick = fPosNeu;
 $('f-send').onclick = async () => {
-  if (!bau()) { msg('m-fotos', t('bauZuerst'), 'err'); return; } if (!fFiles.length) { msg('m-fotos', t('fotosZuerst'), 'err'); return; }
-  const fAuf = segVal('f-auftrag'); if (!fAuf) { msg('m-fotos', t('auftragWaehlen'), 'err'); return; }
+  if (!bau()) { msg('m-fotos', t('bauZuerst'), 'err'); return; }
+  const fAuf = segVal('f-auftrag') || 'normal';
+  const pos = [{ files: fFiles, nr: $('f-nr').value.trim(), bereich: $('f-bereich').value.trim(), text: $('f-text').value.trim(), p: null }]
+    .concat(fPosExtra.map(p => ({ files: p.files, nr: p.nr.value.trim(), bereich: p.bereich.value.trim(), text: p.text.value.trim(), p })));
+  const ohneFoto = pos.findIndex((x, i) => !x.files.length && (x.nr || x.bereich || x.text) && (i > 0 || fPosExtra.length));
+  if (ohneFoto >= 0) { msg('m-fotos', 'Position ' + (ohneFoto + 1) + ': ' + t('fotosZuerst'), 'err'); return; }
+  const mitFoto = pos.filter(x => x.files.length); if (!mitFoto.length) { msg('m-fotos', t('fotosZuerst'), 'err'); return; }
   const fMat = fAuf === 'regie' ? matWerte() : [], fSonst = fAuf === 'regie' ? $('f-mat-sonst').value.trim() : '';
   if (fAuf === 'regie' && !fMat.length && !fSonst) { msg('m-fotos', t('regieMaterialFehlt'), 'err'); return; }
   if (fMat.some(m => m.menge && !/^\d{1,5}([.,]\d{1,2})?$/.test(m.menge))) { msg('m-fotos', t('mengeUngueltig'), 'err'); return; }
   $('f-send').disabled = true;
-  // Jedes Foto einzeln verkleinern und SOFORT auf dem Handy speichern (Warteschlange). Danach wird eins nach dem anderen gesendet.
-  const meta = { baustelle: bau(), typ: segVal('f-typ'), pendenzNr: $('f-nr').value.trim(), bereich: $('f-bereich').value.trim(), text: $('f-text').value.trim(), auftrag: fAuf, material: fMat, materialSonst: fSonst,
-    gruppe: 'g' + Date.now() + Math.random().toString(36).slice(2, 6), anzahl: fFiles.length };
-  const liste = fFiles.slice(), n = liste.length; let ok = 0, fehler = 0;
+  // Jedes Foto einzeln verkleinern und SOFORT auf dem Handy speichern (Warteschlange). Jede Position = eigener Eintrag (gruppe).
+  const total = mitFoto.reduce((s, x) => s + x.files.length, 0); let ok = 0, fehler = 0, nr = 0;
   try {
-    for (let i = 0; i < n; i++) {
-      msg('m-fotos', t('fotoSpeichern') + ' ' + (i + 1) + ' / ' + n + ' …');
-      try { const b64 = await jpegB64(liste[i]);
-        await IDB.add({ action: 'fotoSenden', data: Object.assign({ ts: Date.now(), teil: i, bilder: [b64] }, meta), am: Date.now(), wer: sess && (sess.id || 'chef') }); ok++;
-        fFiles = fFiles.filter(f => f !== liste[i]); }
-      catch (e) { fehler++; }
-      if (i % 10 === 9) await new Promise(r => setTimeout(r, 0)); // Handy kurz atmen lassen
+    for (const x of mitFoto) {
+      const meta = { baustelle: bau(), typ: segVal('f-typ'), pendenzNr: x.nr, bereich: x.bereich, text: x.text, auftrag: fAuf, material: fMat, materialSonst: fSonst,
+        gruppe: 'g' + Date.now() + Math.random().toString(36).slice(2, 6), anzahl: x.files.length };
+      const liste = x.files.slice();
+      for (let i = 0; i < liste.length; i++) {
+        nr++; msg('m-fotos', t('fotoSpeichern') + ' ' + nr + ' / ' + total + ' …');
+        try { const b64 = await jpegB64(liste[i]);
+          await IDB.add({ action: 'fotoSenden', data: Object.assign({ ts: Date.now(), teil: i, bilder: [b64] }, meta), am: Date.now(), wer: sess && (sess.id || 'chef') }); ok++;
+          const idx = x.files.indexOf(liste[i]); if (idx >= 0) x.files.splice(idx, 1); }
+        catch (e) { fehler++; }
+        if (nr % 10 === 0) await new Promise(r => setTimeout(r, 0)); // Handy kurz atmen lassen
+      }
     }
-    thumbs(); if (!fFiles.length) { $('f-text').value = ''; $('f-nr').value = ''; segReset('f-auftrag'); matReset(); }
-    msg('m-fotos', '✓ ' + ok + ' ' + t('fotosGespeichert') + (fehler ? ' – ' + fehler + ' ' + t('fotosNichtLesbar') : ''), fehler ? 'err' : 'ok');
+    thumbs(); fPosExtra.forEach(fPosThumbs);
+    if (!fFiles.length && fPosExtra.every(p => !p.files.length)) { // alles gespeichert → Formular leeren, «Normal» wieder vorwählen
+      $('f-text').value = ''; $('f-nr').value = ''; $('f-bereich').value = ''; setSeg('f-auftrag', 'normal'); matReset();
+      fPosExtra.forEach(p => { (p.urls || []).forEach(u => URL.revokeObjectURL(u)); }); $('f-weitere').innerHTML = ''; fPosExtra = []; fPosTitel(); }
+    msg('m-fotos', '✓ ' + ok + ' ' + t('fotosGespeichert') + (mitFoto.length > 1 ? ' (' + mitFoto.length + ' Positionen)' : '') + (fehler ? ' – ' + fehler + ' ' + t('fotosNichtLesbar') : ''), fehler ? 'err' : 'ok');
     await qLoad(); renderFotos(); flush();
   } catch (e) { msg('m-fotos', e.message + ' – ' + ok + ' ' + t('fotosGespeichert'), 'err'); await qLoad(); flush(); }
   $('f-send').disabled = false;
@@ -1214,11 +1256,11 @@ function render() {
 }
 
 /* ====== Automatisch aktualisieren (iPhone behält sonst alte Versionen) ====== */
-const APP_VERSION = '2026-11-13.19';
+const APP_VERSION = '2026-11-13.20';
 window.asnNeuLaden = () => location.reload();
 function sicherNeuLaden() { // nur wenn nichts Ungespeichertes offen ist
   const a = document.activeElement, tippt = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
-  return !tippt && !fFiles.length && $('au-pos').hidden && !$('s-arbeit').value.trim() && !$('m-artikel').value.trim();
+  return !tippt && !fFiles.length && !fPosExtra.some(p => p.files.length) && $('au-pos').hidden && !$('s-arbeit').value.trim() && !$('m-artikel').value.trim();
 }
 async function versionPruefen() {
   if (!navigator.onLine) return;

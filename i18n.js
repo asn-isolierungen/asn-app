@@ -174,6 +174,8 @@ const TXT = {
   fotoSpeichern: { de: 'Foto wird auf dem Handy gespeichert', en: 'Saving photo on phone', sq: 'Foto po ruhet në telefon', it: 'Salvataggio foto sul telefono', ro: 'Se salvează poza pe telefon', hu: 'Fotó mentése a telefonra' },
   fotosGespeichert: { de: 'Foto(s) sicher auf dem Handy gespeichert – werden jetzt eins nach dem anderen gesendet.', en: 'photo(s) safely saved on the phone – now being sent one by one.', sq: 'foto u ruajtën në telefon – po dërgohen një nga një.', it: 'foto salvate sul telefono – ora vengono inviate una alla volta.', ro: 'poză/poze salvate pe telefon – se trimit acum una câte una.', hu: 'fotó elmentve a telefonra – most egyenként küldjük.' },
   fotosNichtLesbar: { de: 'Fotos konnten nicht gelesen werden', en: 'photos could not be read', sq: 'foto nuk u lexuan', it: 'foto non leggibili', ro: 'poze nu au putut fi citite', hu: 'fotót nem sikerült beolvasni' },
+  weiterePosition: { de: '➕ Weitere Position (Fotos + Notiz)', en: '➕ Add another item (photos + note)', sq: '➕ Pozicion tjetër (foto + shënim)', it: '➕ Altra posizione (foto + nota)', ro: '➕ Altă poziție (poze + notă)', hu: '➕ Újabb tétel (fotók + megjegyzés)' },
+  entfernen: { de: 'Entfernen', en: 'Remove', sq: 'Hiq', it: 'Rimuovi', ro: 'Elimină', hu: 'Eltávolítás' },
   keinEmpfangSpaeter: { de: 'Kein Empfang – bitte später nochmals.', en: 'No signal – please try again later.', sq: 'Pa sinjal – ju lutem provoni më vonë.', it: 'Nessun segnale – riprova più tardi.', ro: 'Fără semnal – încearcă mai târziu.', hu: 'Nincs térerő – próbáld újra később.' }
 };
 let LANG = (() => { try { return JSON.parse(localStorage.getItem('asn-lang')) || 'de'; } catch (e) { return 'de'; } })();
