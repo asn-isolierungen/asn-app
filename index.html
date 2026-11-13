@@ -258,6 +258,43 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
         <h2 data-i18n="bestellungen">Bestellungen dieser Baustelle</h2><div class="list" id="l-mat"></div>
       </section>
 
+      <!-- AUFNAHME VOR ORT (nur Jehon) -->
+      <section id="t-auf" hidden>
+        <div class="card" id="au-start">
+          <h2 style="margin:0">📋 Aufnahme vor Ort</h2>
+          <p class="hint" style="margin:0">Für Offerte oder Regie-Kostendach. Funktioniert auch ohne Empfang – alles bleibt auf dem Handy gespeichert, bis es gesendet ist.</p>
+          <div><span class="lab">Art</span><div class="seg" id="au-typ"><button type="button" class="ghost small" data-v="offerte" aria-pressed="false">Offerte</button><button type="button" class="ghost small" data-v="kostendach" aria-pressed="false">Regie-Kostendach</button></div></div>
+          <div><label for="au-objekt">Objekt / Baustelle</label><input id="au-objekt" list="au-objekte" maxlength="120" autocomplete="off" placeholder="z. B. Schulhaus Rothrist"><datalist id="au-objekte"></datalist></div>
+          <div><label for="au-adresse">Adresse</label><input id="au-adresse" maxlength="160" autocomplete="off" placeholder="Strasse Nr, PLZ Ort"></div>
+          <div><label for="au-kunde">Kunde / Auftraggeber</label><input id="au-kunde" maxlength="120" autocomplete="off"></div>
+          <button class="primary" type="button" id="au-go">Aufnahme starten</button>
+          <div class="msg" id="m-au-start" role="status"></div>
+        </div>
+        <div id="au-lauf" hidden>
+          <div class="card"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><div class="lab" id="au-k-typ"></div><h2 style="margin:2px 0" id="au-k-objekt"></h2><div class="meta" id="au-k-info"></div></div><span class="chip c-neu" id="au-k-status"></span></div>
+            <button class="primary" type="button" id="au-neu">➕ Neue Position</button></div>
+          <div class="card" id="au-pos" hidden>
+            <h2 style="margin:0" id="au-pos-titel">Position</h2>
+            <div><label for="au-bereich">Bereich / Raum</label><input id="au-bereich" maxlength="200" autocomplete="off" placeholder="z. B. UG Technikraum, Kanal 600×400"></div>
+            <div class="thumbs" id="au-thumbs"></div>
+            <span class="filebtn ghost"><span>📷 Fotos aufnehmen / wählen</span><input type="file" id="au-files" accept="image/*" multiple></span>
+            <div class="matbox"><span class="lab">Material</span><div id="au-mat"></div>
+              <label for="au-matsonst">Sonstiges Material</label><textarea id="au-matsonst" maxlength="500" placeholder="z. B. 40 mm Thermisch, 5 m²"></textarea></div>
+            <div class="matbox" style="border-color:#c0602a;background:#fff4ee"><span class="lab">Erschwernisse</span><div id="au-ersch"></div>
+              <label for="au-erschsonst">Sonstige Erschwernis</label><input id="au-erschsonst" maxlength="300" autocomplete="off" placeholder="z. B. nur nachts möglich"></div>
+            <div><label for="au-bem">Bemerkung</label><textarea id="au-bem" maxlength="1000"></textarea></div>
+            <div class="grid2"><button class="ghost" type="button" id="au-abbr">Abbrechen</button><button class="primary" type="button" id="au-pos-save">Position speichern</button></div>
+            <div class="msg" id="m-au-pos" role="status"></div>
+          </div>
+          <div class="list" id="au-liste"></div>
+          <div class="card">
+            <button class="primary" type="button" id="au-senden" style="background:#1d7a3e;color:#fff">✅ Erledigt &amp; absenden</button>
+            <div class="msg" id="m-au" role="status"></div>
+            <button class="link small" type="button" id="au-verwerfen" style="color:#b42318">Aufnahme verwerfen</button>
+          </div>
+        </div>
+      </section>
+
       <!-- CHEF -->
       <section id="t-chef" hidden>
         <div class="card">
@@ -312,6 +349,7 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
   <button role="tab" data-t="fotos" aria-selected="false"><span class="ic">📷</span><span data-i18n="tabFotos">Fotos</span></button>
   <button role="tab" data-t="pend" aria-selected="false"><span class="ic">✅</span><span data-i18n="tabPend">Pendenzen</span></button>
   <button role="tab" data-t="mat" aria-selected="false"><span class="ic">📦</span><span data-i18n="tabMat">Material</span></button>
+  <button role="tab" data-t="auf" aria-selected="false" id="tab-auf" hidden><span class="ic">📋</span>Aufnahme</button>
   <button role="tab" data-t="chef" aria-selected="false" id="tab-chef" hidden><span class="ic">👔</span>Chef</button>
 </nav>
 
@@ -347,11 +385,11 @@ const isChef = () => !!(sess && sess.chef);
 
 /* ====== Server ====== */
 class NetzFehler extends Error {}
-async function api(action, data) {
+async function api(action, data, wartenMs) {
   if (!API) throw new Error('App ist noch nicht mit Google verbunden (API fehlt).');
   let r;
   try {
-    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 30000);
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), wartenMs || 30000);
     r = await fetch(API, { method: 'POST', body: JSON.stringify(Object.assign({ action, token: sess && sess.token, chef: isChef(), sprache: isChef() ? 'de' : LANG }, data || {})), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: ctl.signal });
     clearTimeout(t);
   } catch (e) { throw new NetzFehler('Kein Empfang'); }
@@ -366,9 +404,13 @@ async function api(action, data) {
 
 /* ====== Warteschlange (offline) in IndexedDB – auch Fotos ====== */
 const IDB = { db: null,
-  open() { return this.db ? Promise.resolve(this.db) : new Promise((ok, no) => { const q = indexedDB.open('asn', 1); q.onupgradeneeded = () => q.result.createObjectStore('q', { keyPath: 'k', autoIncrement: true }); q.onsuccess = () => { this.db = q.result; ok(this.db); }; q.onerror = () => no(q.error); }); },
-  async tx(mode, fn) { const db = await Promise.race([this.open(), new Promise((_, no) => setTimeout(() => no(new Error('Speicher auf dem Handy nicht verfügbar')), 4000))]); return new Promise((ok, no) => { const t = db.transaction('q', mode); const s = t.objectStore('q'); const r = fn(s); t.oncomplete = () => ok(r && r.result); t.onerror = () => no(t.error); }); },
-  add(v) { return this.tx('readwrite', s => s.add(v)); }, all() { return this.tx('readonly', s => s.getAll()); }, del(k) { return this.tx('readwrite', s => s.delete(k)); }
+  open() { return this.db ? Promise.resolve(this.db) : new Promise((ok, no) => { const q = indexedDB.open('asn', 2);
+    q.onupgradeneeded = () => { const d = q.result; if (!d.objectStoreNames.contains('q')) d.createObjectStore('q', { keyPath: 'k', autoIncrement: true }); if (!d.objectStoreNames.contains('auf')) d.createObjectStore('auf', { keyPath: 'id' }); };
+    q.onsuccess = () => { this.db = q.result; ok(this.db); }; q.onerror = () => no(q.error); }); },
+  async tx(mode, fn, store) { const st = store || 'q'; const db = await Promise.race([this.open(), new Promise((_, no) => setTimeout(() => no(new Error('Speicher auf dem Handy nicht verfügbar')), 4000))]); return new Promise((ok, no) => { const t = db.transaction(st, mode); const s = t.objectStore(st); const r = fn(s); t.oncomplete = () => ok(r && r.result); t.onerror = () => no(t.error); }); },
+  add(v) { return this.tx('readwrite', s => s.add(v)); }, all() { return this.tx('readonly', s => s.getAll()); }, del(k) { return this.tx('readwrite', s => s.delete(k)); },
+  // Aufnahme vor Ort (Entwurf mit Fotos) – bleibt auf dem Handy, bis alles gesendet ist
+  aufPut(v) { return this.tx('readwrite', s => s.put(v), 'auf'); }, aufAll() { return this.tx('readonly', s => s.getAll(), 'auf'); }, aufDel(id) { return this.tx('readwrite', s => s.delete(id), 'auf'); }
 };
 let wartend = [];
 async function qLoad() { try { wartend = await IDB.all() || []; } catch (e) { wartend = []; } netUI(); }
@@ -443,10 +485,11 @@ window.addEventListener('storage', e => { if (e.key !== 'asn-sess') return; cons
   if (JSON.stringify(n) === JSON.stringify(sess)) return; sess = n; D = n ? lsGet('asn-daten', null) : null; zeige(); if (sess) laden(); });
 function zeige() {
   $('v-block').hidden = true; $('v-login').hidden = !!sess; $('v-app').hidden = !sess; $('nav').hidden = !sess;
-  $('tab-chef').hidden = !isChef();
-  LANG = isChef() ? 'de' : autoSprache(); i18nAnwenden(); try { if (!$('f-mat-liste').querySelector(':checked')) matAufbauen(); } catch (e) { /* beim ersten Laden noch nicht bereit – wird unten aufgebaut */ }
+  $('tab-chef').hidden = !isChef(); $('tab-auf').hidden = !isChef();
+  LANG =isChef() ? 'de' : autoSprache(); i18nAnwenden(); try { if (!$('f-mat-liste').querySelector(':checked')) matAufbauen(); } catch (e) { /* beim ersten Laden noch nicht bereit – wird unten aufgebaut */ }
   if (!sess) { namenLaden(); installHinweis(); return; }
   $('h-name').textContent = isChef() ? 'Jehon Avdiu' : sess.name;
+  if (isChef()) { try { aufLaden(); } catch (e) { /* Aufnahme-Teil noch nicht geladen */ } }
   if (isChef() && lsGet('asn-tab', '') === 'zeit') tab('chef'); else tab(lsGet('asn-tab', isChef() ? 'chef' : 'zeit'));
   render();
 }
@@ -458,11 +501,11 @@ function installHinweis() {
 
 /* ====== Reiter ====== */
 function tab(t) {
-  if (t === 'chef' && !isChef()) t = 'zeit'; if (t === 'zeit' && isChef()) t = 'chef';
+  if ((t === 'chef' || t === 'auf') && !isChef()) t = 'zeit'; if (t === 'zeit' && isChef()) t = 'chef';
   document.querySelectorAll('nav.tabs button').forEach(x => x.setAttribute('aria-selected', String(x.dataset.t === t)));
-  ['zeit', 'fotos', 'pend', 'mat', 'chef'].forEach(x => $('t-' + x).hidden = x !== t);
-  $('tab-zeit').hidden = isChef();
-  $('bs-wrap').hidden = t === 'chef' || t === 'zeit' && hatOffenenTag();
+  ['zeit', 'fotos', 'pend', 'mat', 'auf', 'chef'].forEach(x => $('t-' + x).hidden = x !== t);
+  $('tab-zeit').hidden = isChef(); $('tab-auf').hidden = !isChef();
+  $('bs-wrap').hidden = t === 'chef' || t === 'auf' || t === 'zeit' && hatOffenenTag();
   lsSet('asn-tab', t); window.scrollTo(0, 0);
 }
 document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => tab(b.dataset.t));
@@ -653,6 +696,8 @@ function tagItem(x, chef) {
     if (locs.some(l => l.status === 'out' || l.status === 'na')) { const s = el('button', 'ghost small', '📍 Standort bestätigen'); s.type = 'button'; s.onclick = () => { if (confirm('Standort für ' + x.monteurName + ' am ' + dd(x.datum) + ' als in Ordnung bestätigen?')) chefAkt('standortBestaetigen', { id: x.id }, 'm-chefliste'); }; row.append(s); }
     if (x.status !== 'arbeit' || x.bis) { const sb = el('button', 'ghost small', x.geprueft ? '↩ Bestätigung aufheben' : '✅ Stunden bestätigen'); sb.type = 'button';
       sb.onclick = () => { if (x.geprueft ? confirm('Bestätigung für ' + x.monteurName + ' am ' + dd(x.datum) + ' aufheben?') : true) chefAkt('stundenBestaetigen', { id: x.id, aus: !!x.geprueft }, 'm-chefliste'); }; row.append(sb); }
+    const del = el('button', 'ghost small', '🗑 Tag löschen'); del.type = 'button';
+    del.onclick = () => { if (confirm('Tag von ' + x.monteurName + ' am ' + dd(x.datum) + ' ganz löschen?\n\nDanach kann ' + x.monteurName + ' an diesem Tag neu stempeln. Eine Kopie bleibt im Protokoll.')) chefAkt('tagLoeschen', { id: x.id }, 'm-chefliste'); }; row.append(del);
     it.append(row); }
   return it;
 }
@@ -958,6 +1003,137 @@ $('sn-xls').onclick = () => isChef() && snKnopf('sn-xls', 'Excel wird erstellt �
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Stundennachweis'); XLSX.writeFile(wb, SN.datei + '.xlsx');
 });
 
+/* ====== Aufnahme vor Ort (nur Jehon): Offerte / Regie-Kostendach ====== */
+// Alles liegt zuerst auf dem Handy (IndexedDB «auf»), auch ohne Empfang und wenn die App geschlossen wird.
+// Absenden: jede Position einzeln (wiederholbar), dann Abschluss → Server erstellt PDF + Excel und schickt E-Mail. Erst danach wird lokal gelöscht.
+const AUF_MAT = [['th30', '30 mm Thermisch Mineralfaser Alu-kaschiert', 'm²'], ['th50', '50 mm Thermisch Mineralfaser Alu-kaschiert', 'm²'], ['th60', '60 mm Thermisch Mineralfaser Alu-kaschiert', 'm²'], ['th100', '100 mm Thermisch Mineralfaser Alu-kaschiert', 'm²'],
+  ['bs30k', 'Brandschutz EI30 Kanal 60 mm', 'm²'], ['bs60k', 'Brandschutz EI60 Kanal 60 mm', 'm²'], ['bs30r', 'Brandschutz EI30 Rohr 50 mm', 'm²'], ['bs60r', 'Brandschutz EI60 Rohr 80 mm', 'm²'],
+  ['promls35', 'Promatect LS35 Verkleidung', 'm²'], ['kaut', '2×25 mm Kautschuk Dämmung', 'm²'], ['alumantel', 'Alu-Mantel', 'm²'], ['v2a', 'V2A-Mantel', 'm²'],
+  ['blech', 'Blechabschluss', 'Stk'], ['promab', 'Promatect-Abschluss', 'Stk'], ['kbSilber', 'Alu-Klebeband silber', 'Rollen'], ['kbSchwarz', 'Alu-Klebeband schwarz', 'Rollen']];
+const AUF_ERSCH = [['hebebuehne', 'Hebebühne nötig (über 2,5 m Höhe)'], ['geruest', 'Gerüst nötig (über 2,5 m Höhe)'], ['zuzweit', 'Arbeit zu zweit'], ['zugang', 'Erschwerter Zugang']];
+let AUF = null, auFotos = [], auEdit = null, aufSendet = false, auTimer = null;
+seg('au-typ');
+function bildB64(file, max, q) { return new Promise((ok, no) => { const img = new Image(); const u = URL.createObjectURL(file);
+  img.onload = () => { const k = Math.min(1, max / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); ok(c.toDataURL('image/jpeg', q).split(',')[1]); };
+  img.onerror = () => { URL.revokeObjectURL(u); no(new Error('Foto kann nicht gelesen werden')); }; img.src = u; }); }
+async function aufLaden() {
+  try { const l = (await IDB.aufAll()) || []; AUF = l.sort((a, b) => b.erstellt - a.erstellt)[0] || null; }
+  catch (e) { AUF = null; msg('m-au-start', 'Speicher auf dem Handy nicht verfügbar: ' + e.message, 'err'); }
+  if (AUF && AUF.offenePos && $('au-pos').hidden) posOeffnen(AUF.offenePos, true);
+  renderAuf(); if (AUF && AUF.status === 'sendet' && navigator.onLine) aufSenden(true);
+}
+async function aufSpeichern() { if (AUF) await IDB.aufPut(AUF); }
+const auMatText = p => (p.material || []).map(m => { const d = AUF_MAT.find(x => x[0] === m.id) || ['', m.id, '']; return d[1] + (m.menge ? ' ' + m.menge + ' ' + d[2] : ' (Menge fehlt)'); }).concat(p.materialSonst ? ['Sonstiges: ' + p.materialSonst] : []).join(' · ');
+const auErschText = p => AUF_ERSCH.filter(e => p.ersch && p.ersch[e[0]]).map(e => e[1]).concat(p.erschSonst ? [p.erschSonst] : []).join(' · ');
+function renderAuf() {
+  if (!isChef()) return;
+  const dl = $('au-objekte'); dl.innerHTML = ''; (D && D.baustellen || []).forEach(b => { const o = el('option'); o.value = b.name; dl.append(o); });
+  $('au-start').hidden = !!AUF; $('au-lauf').hidden = !AUF; if (!AUF) return;
+  const nf = AUF.positionen.reduce((s, p) => s + p.fotos.length, 0);
+  $('au-k-typ').textContent = AUF.typ === 'offerte' ? 'OFFERTE' : 'REGIE-KOSTENDACH'; $('au-k-objekt').textContent = AUF.objekt;
+  $('au-k-info').textContent = [AUF.adresse, AUF.kunde].filter(Boolean).join(' · ') + (AUF.adresse || AUF.kunde ? ' — ' : '') + (AUF.bisher ? 'bisher ' + AUF.bisher + ' Pos. gesendet + ' : '') + AUF.positionen.length + ' neue Positionen · ' + nf + ' Fotos';
+  $('au-k-status').textContent = AUF.status === 'sendet' ? 'wird gesendet …' : 'auf dem Handy gespeichert'; $('au-k-status').className = 'chip ' + (AUF.status === 'sendet' ? 'c-wartet' : 'c-neu');
+  const L = $('au-liste'); L.innerHTML = '';
+  AUF.positionen.slice().reverse().forEach(p => { const it = el('div', 'item'); const top = el('div', 'top');
+    top.append(el('strong', '', 'Pos. ' + p.nr + (p.bereich ? ' – ' + p.bereich : '')), el('span', 'chip ' + (p.gesendet ? 'c-ok' : 'c-neu'), p.gesendet ? 'gesendet ✓' : p.fotos.length + ' Fotos')); it.append(top);
+    if (p.fotos.length) { const g = el('div', 'thumbs'); p.fotos.slice(0, 8).forEach(f => { const im = el('img'); im.src = 'data:image/jpeg;base64,' + f.klein; im.alt = 'Foto'; g.append(im); }); if (p.fotos.length > 8) g.append(el('span', 'meta', '+' + (p.fotos.length - 8))); it.append(g); }
+    const mt = auMatText(p); if (mt) it.append(el('div', 'matinfo', 'Material: ' + mt));
+    const et = auErschText(p); if (et) it.append(el('div', 'matinfo', 'Erschwernisse: ' + et));
+    if (p.bemerkung) it.append(el('div', 'txt', p.bemerkung));
+    if (!p.gesendet && AUF.status !== 'sendet') { const row = el('div', 'row'); const b1 = el('button', 'ghost small', '✏️ Bearbeiten'); b1.type = 'button'; b1.onclick = () => posOeffnen(p);
+      const b2 = el('button', 'ghost small', '🗑 Löschen'); b2.type = 'button'; b2.onclick = async () => { if (!confirm('Pos. ' + p.nr + ' mit ' + p.fotos.length + ' Fotos löschen?')) return;
+        AUF.positionen = AUF.positionen.filter(x => x !== p); if (!AUF.positionen.some(x => x.gesendet)) AUF.positionen.forEach((x, i) => x.nr = (AUF.startNr || 0) + i + 1); await aufSpeichern(); renderAuf(); };
+      row.append(b1, b2); it.append(row); }
+    L.append(it); });
+}
+$('au-go').onclick = async () => {
+  const typ = segVal('au-typ'), objekt = $('au-objekt').value.trim(); let adresse = $('au-adresse').value.trim(); const kunde = $('au-kunde').value.trim();
+  if (!typ) { msg('m-au-start', 'Art wählen: Offerte oder Regie-Kostendach.', 'err'); return; }
+  if (objekt.length < 2) { msg('m-au-start', 'Objekt / Baustelle eingeben.', 'err'); return; }
+  if (!adresse) { const b = (D && D.baustellen || []).find(x => x.name === objekt); if (b && b.adresse) adresse = b.adresse; }
+  // Fortlaufende Liste pro Objekt + Art: bestehende Aufnahme weiterführen (Server, sonst Handy-Gedächtnis wenn kein Empfang)
+  const key = typ + '|' + objekt.toLowerCase(); let vor = (lsGet('asn-auf-objekte', {}))[key] || null;
+  msg('m-au-start', 'Prüfe, ob es für dieses Objekt schon eine Liste gibt …');
+  try { const j = await api('aufnahmeInfo', { objekt, typ }, 20000); vor = j.vorhanden ? { id: j.id, erstellt: j.erstellt, letzteNr: j.letzteNr, anzahl: j.anzahl, adresse: j.adresse, kunde: j.kunde } : vor; } catch (e) { /* kein Empfang → Handy-Gedächtnis */ }
+  AUF = vor ? { id: vor.id, typ, objekt, adresse: adresse || vor.adresse || '', kunde: kunde || vor.kunde || '', erstellt: vor.erstellt, startNr: vor.letzteNr || 0, bisher: vor.anzahl || 0, positionen: [], status: 'entwurf' }
+            : { id: 'a' + Date.now(), typ, objekt, adresse, kunde, erstellt: Date.now(), startNr: 0, bisher: 0, positionen: [], status: 'entwurf' };
+  try { await aufSpeichern(); } catch (e) { msg('m-au-start', 'Speichern auf dem Handy nicht möglich: ' + e.message, 'err'); AUF = null; return; }
+  ['au-objekt', 'au-adresse', 'au-kunde'].forEach(i => $(i).value = ''); segReset('au-typ'); msg('m-au-start', '');
+  renderAuf(); if (AUF.startNr) msg('m-au', 'Fortsetzung der bestehenden Liste: bisher ' + AUF.bisher + ' Positionen – neue Positionen ab Pos. ' + (AUF.startNr + 1) + '. Die E-Mail enthält wieder die ganze Liste.', 'ok'); posOeffnen(null);
+};
+function posOeffnen(p, wiederherstellen) {
+  auEdit = p && !wiederherstellen ? p : null;
+  const d = p || { id: 'p' + Date.now(), bereich: '', bemerkung: '', material: [], materialSonst: '', ersch: {}, erschSonst: '', fotos: [] };
+  auFotos = (d.fotos || []).slice(); $('au-pos').dataset.pid = d.id; $('au-pos').dataset.nr = d.nr || '';
+  $('au-pos-titel').textContent = p && !wiederherstellen ? 'Pos. ' + p.nr + ' bearbeiten' : (wiederherstellen && d.nr ? 'Pos. ' + d.nr + ' bearbeiten' : 'Neue Position (Pos. ' + (AUF.positionen.reduce((m, x) => Math.max(m, x.nr), AUF.startNr || 0) + 1) + ')');
+  $('au-bereich').value = d.bereich || ''; $('au-matsonst').value = d.materialSonst || ''; $('au-erschsonst').value = d.erschSonst || ''; $('au-bem').value = d.bemerkung || '';
+  const M = $('au-mat'); M.innerHTML = '';
+  AUF_MAT.forEach(([id, name, eh]) => { const vor = (d.material || []).find(m => m.id === id); const row = el('div', 'matrow'); const lb = el('label'); const cb = el('input'); cb.type = 'checkbox'; cb.dataset.m = id; cb.checked = !!vor; lb.append(cb, document.createTextNode(name));
+    const q = el('input', 'mq'); q.inputMode = 'decimal'; q.dataset.mq = id; q.maxLength = 9; q.placeholder = 'Menge ' + eh; q.value = vor ? vor.menge || '' : ''; q.hidden = !vor; q.setAttribute('aria-label', 'Menge ' + name);
+    cb.onchange = () => { q.hidden = !cb.checked; if (!cb.checked) q.value = ''; else q.focus(); posZwischen(); }; q.oninput = posZwischen; row.append(lb, q); M.append(row); });
+  const E = $('au-ersch'); E.innerHTML = '';
+  AUF_ERSCH.forEach(([id, name]) => { const row = el('div', 'matrow'); const lb = el('label'); const cb = el('input'); cb.type = 'checkbox'; cb.dataset.e = id; cb.checked = !!(d.ersch && d.ersch[id]); cb.onchange = posZwischen; lb.append(cb, document.createTextNode(name)); row.append(lb); E.append(row); });
+  auThumbs(); msg('m-au-pos', wiederherstellen ? 'Nicht gespeicherte Position wiederhergestellt.' : ''); $('au-pos').hidden = false; $('au-neu').hidden = true; $('au-pos').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function posSammeln() {
+  const material = [...$('au-mat').querySelectorAll('input[type=checkbox]')].filter(c => c.checked).map(c => ({ id: c.dataset.m, menge: $('au-mat').querySelector('[data-mq="' + c.dataset.m + '"]').value.trim() }));
+  const ersch = {}; $('au-ersch').querySelectorAll('input[type=checkbox]').forEach(c => { if (c.checked) ersch[c.dataset.e] = true; });
+  return { id: $('au-pos').dataset.pid, nr: Number($('au-pos').dataset.nr) || 0, bereich: $('au-bereich').value.trim(), bemerkung: $('au-bem').value.trim(), material, materialSonst: $('au-matsonst').value.trim(), ersch, erschSonst: $('au-erschsonst').value.trim(), fotos: auFotos.slice() };
+}
+// Zwischenspeichern der offenen Position (falls Handy sperrt / App geschlossen wird)
+function posZwischen() { if (!AUF || $('au-pos').hidden) return; clearTimeout(auTimer); auTimer = setTimeout(async () => { if (!AUF || $('au-pos').hidden) return; AUF.offenePos = posSammeln(); try { await aufSpeichern(); } catch (e) {} }, 600); }
+['au-bereich', 'au-matsonst', 'au-erschsonst', 'au-bem'].forEach(i => $(i).addEventListener('input', posZwischen));
+function auThumbs() { const T = $('au-thumbs'); T.innerHTML = ''; auFotos.forEach((f, i) => { const w = el('div'); const im = el('img'); im.src = 'data:image/jpeg;base64,' + f.klein; im.alt = 'Foto'; const b = el('button', '', '×'); b.type = 'button'; b.setAttribute('aria-label', 'Foto entfernen');
+  b.onclick = () => { if (confirm('Foto entfernen?')) { auFotos.splice(i, 1); auThumbs(); posZwischen(); } }; w.append(im, b); T.append(w); });
+  T.append(el('span', 'meta', auFotos.length + ' Foto' + (auFotos.length === 1 ? '' : 's'))); }
+$('au-files').onchange = async e => { const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
+  if (auFotos.length + files.length > 40) { msg('m-au-pos', 'Höchstens 40 Fotos pro Position – bitte eine weitere Position anlegen.', 'err'); return; }
+  let n = 0; for (const f of files) { msg('m-au-pos', 'Foto ' + (++n) + ' von ' + files.length + ' wird vorbereitet …');
+    try { auFotos.push({ gross: await bildB64(f, 1600, 0.8), klein: await bildB64(f, 480, 0.7) }); } catch (er) { msg('m-au-pos', er.message, 'err'); } }
+  msg('m-au-pos', files.length + ' Foto(s) hinzugefügt.', 'ok'); auThumbs(); posZwischen(); };
+$('au-neu').onclick = () => posOeffnen(null);
+$('au-abbr').onclick = async () => { const p = posSammeln(); if ((p.fotos.length || p.bereich || p.material.length || p.bemerkung) && !auEdit && !confirm('Position verwerfen? Fotos und Eingaben dieser Position gehen verloren.')) return;
+  delete AUF.offenePos; await aufSpeichern(); $('au-pos').hidden = true; $('au-neu').hidden = false; auEdit = null; renderAuf(); };
+$('au-pos-save').onclick = async () => {
+  const p = posSammeln();
+  if (!p.fotos.length && !p.bereich && !p.material.length && !p.materialSonst && !p.bemerkung) { msg('m-au-pos', 'Bitte mindestens Foto, Bereich, Material oder Bemerkung erfassen.', 'err'); return; }
+  if (p.material.some(m => m.menge && !/^\d{1,6}([.,]\d{1,2})?$/.test(m.menge))) { msg('m-au-pos', 'Menge bitte nur als Zahl (z. B. 12 oder 2,5).', 'err'); return; }
+  const alt = AUF.positionen.find(x => x.id === p.id);
+  if (alt) { p.nr = alt.nr; AUF.positionen[AUF.positionen.indexOf(alt)] = p; } else { p.nr = AUF.positionen.reduce((m, x) => Math.max(m, x.nr), AUF.startNr || 0) + 1; AUF.positionen.push(p); }
+  delete AUF.offenePos; AUF.status = 'entwurf';
+  try { await aufSpeichern(); } catch (e) { msg('m-au-pos', 'Speichern auf dem Handy nicht möglich: ' + e.message, 'err'); return; }
+  $('au-pos').hidden = true; $('au-neu').hidden = false; auEdit = null; msg('m-au', '✓ Pos. ' + p.nr + ' gespeichert (' + p.fotos.length + ' Fotos).', 'ok'); renderAuf(); window.scrollTo(0, 0);
+};
+$('au-senden').onclick = () => aufSenden(false);
+async function aufSenden(auto) {
+  if (!AUF || aufSendet) return;
+  if (!$('au-pos').hidden) { msg('m-au', 'Bitte zuerst die offene Position speichern oder abbrechen.', 'err'); return; }
+  if (!AUF.positionen.length) { msg('m-au', 'Noch keine Position erfasst.', 'err'); return; }
+  const n = AUF.positionen.length, nf = AUF.positionen.reduce((s, p) => s + p.fotos.length, 0);
+  if (!auto && !confirm('Aufnahme «' + AUF.objekt + '» mit ' + n + ' Positionen und ' + nf + ' Fotos absenden?\n\nDu bekommst die Aufstellung (PDF mit Fotos + Excel) per E-Mail.')) return;
+  aufSendet = true; AUF.status = 'sendet'; await aufSpeichern(); renderAuf();
+  const meta = { id: AUF.id, typ: AUF.typ, objekt: AUF.objekt, adresse: AUF.adresse, kunde: AUF.kunde, erstellt: AUF.erstellt };
+  try {
+    for (let i = 0; i < n; i++) { const p = AUF.positionen[i]; if (p.gesendet) continue;
+      msg('m-au', '⏳ Pos. ' + p.nr + ' (' + (i + 1) + ' von ' + n + ', ' + p.fotos.length + ' Fotos) wird gesendet …');
+      await api('aufnahmePosition', { aufnahme: meta, position: { id: p.id, nr: p.nr, bereich: p.bereich, bemerkung: p.bemerkung, material: p.material, materialSonst: p.materialSonst, ersch: p.ersch, erschSonst: p.erschSonst, fotos: p.fotos } }, 240000);
+      p.gesendet = true; await aufSpeichern(); renderAuf(); }
+    msg('m-au', '⏳ PDF und Excel werden erstellt und per E-Mail gesendet … (bei vielen Fotos 1–3 Minuten, App offen lassen)');
+    const j = await api('aufnahmeAbschliessen', { aufnahme: meta, nrs: AUF.positionen.map(p => p.nr) }, 360000);
+    const om = lsGet('asn-auf-objekte', {}); om[AUF.typ + '|' + AUF.objekt.toLowerCase()] = { id: AUF.id, erstellt: AUF.erstellt, letzteNr: AUF.positionen.reduce((m, x) => Math.max(m, x.nr), AUF.startNr || 0), anzahl: j.positionen, adresse: AUF.adresse, kunde: AUF.kunde }; lsSet('asn-auf-objekte', om);
+    const hist = lsGet('asn-auf-hist', []); hist.unshift({ objekt: AUF.objekt, typ: AUF.typ, am: Date.now(), pos: j.positionen, fotos: j.fotos }); lsSet('asn-auf-hist', hist.slice(0, 10));
+    await IDB.aufDel(AUF.id); const o = AUF.objekt; AUF = null; renderAuf();
+    msg('m-au-start', '✓ Gesendet: «' + o + '» – ' + j.positionen + ' Positionen, ' + j.fotos + ' Fotos. Die E-Mail mit PDF und Excel ist unterwegs zu dir.', 'ok');
+  } catch (e) {
+    if (e instanceof NetzFehler) msg('m-au', '📶 Kein Empfang / Verbindung unterbrochen – alles bleibt auf dem Handy. Bei Empfang wird automatisch weitergesendet (oder nochmals «Absenden» tippen).', 'err');
+    else { AUF.status = 'entwurf'; await aufSpeichern(); msg('m-au', 'Fehler: ' + e.message + ' – die Aufnahme bleibt gespeichert. Bitte nochmals «Absenden» tippen.', 'err'); }
+    renderAuf();
+  } finally { aufSendet = false; }
+}
+$('au-verwerfen').onclick = async () => { if (!AUF) return; if (!confirm('Ganze Aufnahme «' + AUF.objekt + '» mit allen Positionen und Fotos vom Handy löschen?\n\nDas kann nicht rückgängig gemacht werden.')) return;
+  await IDB.aufDel(AUF.id); AUF = null; $('au-pos').hidden = true; $('au-neu').hidden = false; renderAuf(); };
+
 /* ====== Anzeige ====== */
 // Nicht neu aufbauen, solange im Chef-Bereich etwas eingetippt wird (sonst wäre die Eingabe weg)
 function amTippen() { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && ($('t-chef').contains(a))); }
@@ -968,13 +1144,15 @@ function render() {
   if (!sess) return; if (amTippen()) { renderWartet = true; netUI(); return; } fillBau(); netUI();
   if (isChef()) { renderChef(); } else { renderStempel(); renderZeit(); }
   renderFotos(); renderPend(); renderMat();
-  const t = lsGet('asn-tab', 'zeit'); $('bs-wrap').hidden = t === 'chef' || (t === 'zeit' && hatOffenenTag());
+  if (isChef()) renderAuf();
+  const t = lsGet('asn-tab', 'zeit'); $('bs-wrap').hidden = t === 'chef' || t === 'auf' || (t === 'zeit' && hatOffenenTag());
 }
 
 /* ====== Start ====== */
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 $('c-woche').click();
 zeige(); if (sess) laden();
+window.addEventListener('online', () => { if (isChef() && AUF && AUF.status === 'sendet') aufSenden(true); });
 qLoad().then(() => { if (sess) { flush(); render(); } });
 setInterval(() => { if (sess && navigator.onLine && !document.hidden) laden(); }, 120000);
 </script>
