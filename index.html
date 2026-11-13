@@ -143,7 +143,7 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
       <div><label for="l-pin">PIN</label><input id="l-pin" class="pin" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••"></div>
       <button class="primary" id="l-go" type="button" data-i18n="anmelden">Anmelden</button>
       <div class="msg" id="m-login" role="status"></div>
-      <button class="link" id="l-chef" type="button">Chef-Anmeldung</button>
+      <button class="link" id="l-chef" type="button">Jehon Avdiu</button>
       <div class="install" id="install" hidden></div>
     </div>
   </section>
@@ -412,7 +412,7 @@ async function namenLaden() {
   try { const j = await api('namen', {}); liste = j.monteure; lsSet('asn-namen', liste); } catch (e) { if (!liste.length) msg('m-login', e.message, 'err'); }
   const cur = s.value; s.length = 1; liste.forEach(m => s.append(new Option(m.name, m.id))); s.value = cur;
 }
-$('l-chef').onclick = () => { chefMode = !chefMode; $('l-name-wrap').hidden = chefMode; $('l-chef').textContent = chefMode ? 'Monteur-Anmeldung' : 'Chef-Anmeldung'; msg('m-login', chefMode ? 'Chef-PIN eingeben.' : ''); };
+$('l-chef').onclick = () => { chefMode = !chefMode; $('l-name-wrap').hidden = chefMode; $('l-chef').textContent = chefMode ? 'Monteur-Anmeldung' : 'Jehon Avdiu'; msg('m-login', chefMode ? 'Chef-PIN eingeben.' : ''); };
 $('l-go').onclick = async () => {
   const pin = $('l-pin').value.trim(); if (!/^\d{4}$/.test(pin)) { msg('m-login', t('pinFalsch'), 'err'); return; }
   $('l-go').disabled = true; msg('m-login', 'Anmelden …');
