@@ -130,9 +130,9 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
   <section id="v-login" hidden>
     <div class="center">
       <div class="logo">ASN</div>
-      <div id="l-name-wrap"><label for="l-name">Name</label><select id="l-name"><option value="">– Name wählen –</option></select></div>
+      <div id="l-name-wrap"><label for="l-name" data-i18n="name">Name</label><select id="l-name"><option value="" data-i18n="nameWaehlen">– Name wählen –</option></select></div>
       <div><label for="l-pin">PIN</label><input id="l-pin" class="pin" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••"></div>
-      <button class="primary" id="l-go" type="button">Anmelden</button>
+      <button class="primary" id="l-go" type="button" data-i18n="anmelden">Anmelden</button>
       <div class="msg" id="m-login" role="status"></div>
       <button class="link" id="l-chef" type="button">Chef-Anmeldung</button>
       <div class="install" id="install" hidden></div>
@@ -142,72 +142,72 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
   <!-- GESPERRT -->
   <section id="v-block" hidden>
     <div class="center" style="text-align:center">
-      <div class="logo">ASN</div><h2>Zugang gesperrt</h2><p>Bitte bei Jehon Avdiu melden.</p>
-      <button class="ghost" id="b-out" type="button">Abmelden</button>
+      <div class="logo">ASN</div><h2 data-i18n="gesperrt">Zugang gesperrt</h2><p data-i18n="beiJehon">Bitte bei Jehon Avdiu melden.</p>
+      <button class="ghost" id="b-out" type="button" data-i18n="abmelden">Abmelden</button>
     </div>
   </section>
 
   <!-- APP -->
   <div id="v-app" hidden>
     <div class="wrap">
-      <div class="head"><h1>ASN</h1><div class="who"><div id="h-name"></div><button class="link small" id="h-out" type="button">Abmelden</button></div></div>
+      <div class="head"><h1>ASN</h1><div class="who"><div id="h-name"></div><button class="link small" id="h-out" type="button" data-i18n="abmelden">Abmelden</button></div></div>
       <div class="net okk" id="net" role="status">✓ Verbunden</div>
-      <div id="bs-wrap"><label for="baustelle">Baustelle</label><select id="baustelle"><option value="">– Baustelle wählen –</option></select></div>
+      <div id="bs-wrap"><label for="baustelle" data-i18n="baustelle">Baustelle</label><select id="baustelle"><option value="" data-i18n="baustelleWaehlen">– Baustelle wählen –</option></select></div>
 
       <!-- ZEIT (Monteur) -->
       <section id="t-zeit">
         <div class="card" id="stempel">
           <div class="stp-date" id="s-date"></div>
           <div id="s-state"></div>
-          <button class="big go" type="button" id="s-start">▶ Arbeitsbeginn</button>
+          <button class="big go" type="button" id="s-start" data-i18n="start">▶ Arbeitsbeginn</button>
           <div id="s-ende" hidden>
-            <span class="lab">Pause heute</span>
+            <span class="lab" data-i18n="pauseHeute">Pause heute</span>
             <div class="seg" id="s-pause">
-              <button type="button" class="ghost small" data-v="0" aria-pressed="false">Keine</button>
-              <button type="button" class="ghost small" data-v="30" aria-pressed="false">30 Min.</button>
-              <button type="button" class="ghost small" data-v="60" aria-pressed="false">1 Std.</button>
-              <button type="button" class="ghost small" data-v="90" aria-pressed="false">1,5 Std.</button>
+              <button type="button" class="ghost small" data-v="0" aria-pressed="false" data-i18n="keine">Keine</button>
+              <button type="button" class="ghost small" data-v="30" aria-pressed="false" data-i18n="min30">30 Min.</button>
+              <button type="button" class="ghost small" data-v="60" aria-pressed="false" data-i18n="std1">1 Std.</button>
+              <button type="button" class="ghost small" data-v="90" aria-pressed="false" data-i18n="std15">1,5 Std.</button>
             </div>
-            <label for="s-arbeit" style="margin-top:12px">Was wurde gemacht?</label>
-            <textarea id="s-arbeit" placeholder="z. B. Steigzone 3 fertig isoliert"></textarea>
+            <label for="s-arbeit" style="margin-top:12px" data-i18n="wasGemacht">Was wurde gemacht?</label>
+            <textarea id="s-arbeit" data-i18n-ph="wasGemachtPh" placeholder="z. B. Steigzone 3 fertig isoliert"></textarea>
           </div>
           <div id="s-unterwegs" hidden>
-            <label for="s-neu">Neue Baustelle</label><select id="s-neu"><option value="">– neue Baustelle wählen –</option></select>
-            <button class="big go" type="button" id="s-ankunft" style="margin-top:10px">📍 Ankunft neue Baustelle</button>
+            <label for="s-neu" data-i18n="neueBaustelle">Neue Baustelle</label><select id="s-neu"><option value="" data-i18n="neueBaustelleWaehlen">– neue Baustelle wählen –</option></select>
+            <button class="big go" type="button" id="s-ankunft" style="margin-top:10px" data-i18n="ankunft">📍 Ankunft neue Baustelle</button>
           </div>
-          <button class="big stop" type="button" id="s-stop" hidden>■ Feierabend</button>
-          <button class="ghost" type="button" id="s-wechsel" hidden>⇄ Baustelle wechseln (Abfahrt)</button>
+          <button class="big stop" type="button" id="s-stop" hidden data-i18n="stop">■ Feierabend</button>
+          <button class="ghost" type="button" id="s-wechsel" hidden data-i18n="wechsel">⇄ Baustelle wechseln (Abfahrt)</button>
           <div class="msg" id="m-stempel" role="status"></div>
-          <div id="s-abw"><span class="lab">Heute nicht gearbeitet?</span>
+          <div id="s-abw"><span class="lab" data-i18n="nichtGearbeitet">Heute nicht gearbeitet?</span>
             <div class="seg" id="s-abwseg">
-              <button type="button" class="ghost small" data-v="frei">Frei</button><button type="button" class="ghost small" data-v="krank">Krank</button>
-              <button type="button" class="ghost small" data-v="ferien">Ferien</button><button type="button" class="ghost small" data-v="unfall">Unfall</button>
-              <button type="button" class="ghost small" data-v="feiertag">Feiertag</button>
+              <button type="button" class="ghost small" data-v="frei" data-i18n="frei">Frei</button><button type="button" class="ghost small" data-v="krank" data-i18n="krank">Krank</button>
+              <button type="button" class="ghost small" data-v="ferien" data-i18n="ferien">Ferien</button><button type="button" class="ghost small" data-v="unfall" data-i18n="unfall">Unfall</button>
+              <button type="button" class="ghost small" data-v="feiertag" data-i18n="feiertag">Feiertag</button>
             </div></div>
         </div>
-        <h2>Meine Tage (letzte 14 Tage)</h2>
+        <h2 data-i18n="meineTage">Meine Tage (letzte 14 Tage)</h2>
         <div class="list" id="l-zeit"></div>
       </section>
 
       <!-- FOTOS -->
       <section id="t-fotos" hidden>
         <div class="card">
-          <div><span class="lab">Art</span>
-            <div class="seg" id="f-typ"><button type="button" class="ghost small" data-v="vorher" aria-pressed="false">Vorher</button><button type="button" class="ghost small" data-v="nachher" aria-pressed="true">Nachher</button><button type="button" class="ghost small" data-v="allgemein" aria-pressed="false">Allgemein</button></div></div>
-          <div class="grid2"><div><label for="f-nr">Pendenz-Nr. (falls)</label><input id="f-nr" inputmode="numeric" placeholder="z. B. 27"></div><div><label for="f-bereich">Bereich / Raum</label><input id="f-bereich" placeholder="z. B. 1.OG Steigzone 3"></div></div>
-          <div><label for="f-text">Bemerkung</label><input id="f-text" placeholder="kurz, was man sieht"></div>
+          <div><span class="lab" data-i18n="art">Art</span>
+            <div class="seg" id="f-typ"><button type="button" class="ghost small" data-v="vorher" aria-pressed="false" data-i18n="vorher">Vorher</button><button type="button" class="ghost small" data-v="nachher" aria-pressed="true" data-i18n="nachher">Nachher</button><button type="button" class="ghost small" data-v="allgemein" aria-pressed="false" data-i18n="allgemein">Allgemein</button></div></div>
+          <div class="grid2"><div><label for="f-nr" data-i18n="pendNr">Pendenz-Nr. (falls)</label><input id="f-nr" inputmode="numeric" placeholder="z. B. 27"></div><div><label for="f-bereich" data-i18n="bereich">Bereich / Raum</label><input id="f-bereich" placeholder="z. B. 1.OG Steigzone 3"></div></div>
+          <div><label for="f-text" data-i18n="bemerkung">Bemerkung</label><input id="f-text" data-i18n-ph="bemerkungPh" placeholder="kurz, was man sieht"></div>
           <div class="thumbs" id="f-thumbs"></div>
-          <span class="filebtn ghost">📷 Fotos aufnehmen / wählen<input type="file" id="f-files" accept="image/*" multiple></span>
-          <button class="primary" type="button" id="f-send">Fotos senden</button>
+          <span class="filebtn ghost"><span data-i18n="fotosAufnehmen">📷 Fotos aufnehmen / wählen</span><input type="file" id="f-files" accept="image/*" multiple></span>
+          <button class="primary" type="button" id="f-send" data-i18n="fotosSenden">Fotos senden</button>
           <div class="msg" id="m-fotos" role="status"></div>
         </div>
-        <h2>Fotos dieser Baustelle</h2><div class="list" id="l-fotos"></div>
+        <h2 data-i18n="fotosBaustelle">Fotos dieser Baustelle</h2><div class="list" id="l-fotos"></div>
       </section>
 
       <!-- PENDENZEN -->
       <section id="t-pend" hidden>
-        <p class="hint">Rot = offen · Gelb = erledigt gemeldet, Jehon kontrolliert · Grün = kontrolliert.</p>
-        <div class="seg" id="p-filter"><button type="button" class="ghost small" data-v="offen" aria-pressed="true">Offen</button><button type="button" class="ghost small" data-v="alle" aria-pressed="false">Alle</button></div>
+        <p class="hint" data-i18n="pendHint">Rot = offen · Gelb = erledigt gemeldet, Jehon kontrolliert · Grün = kontrolliert.</p>
+        <div class="seg" id="p-filter"><button type="button" class="ghost small" data-v="offen" aria-pressed="true" data-i18n="offen">Offen</button><button type="button" class="ghost small" data-v="alle" aria-pressed="false" data-i18n="alle">Alle</button></div>
         <div class="msg" id="m-pend" role="status"></div>
         <div class="list" id="l-pend"></div>
         <input type="file" id="p-file" accept="image/*" multiple hidden>
@@ -216,16 +216,16 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
       <!-- MATERIAL -->
       <section id="t-mat" hidden>
         <div class="card">
-          <div><label for="m-artikel">Was fehlt?</label><input id="m-artikel" list="artikel" placeholder="z. B. Alu-Klebeband 50 mm"></div>
+          <div><label for="m-artikel" data-i18n="wasFehlt">Was fehlt?</label><input id="m-artikel" list="artikel" placeholder="z. B. Alu-Klebeband 50 mm"></div>
           <datalist id="artikel"><option value="Paroc Hvac Slab AluCoat 30 mm"><option value="Paroc Hvac Slab AluCoat 50 mm"><option value="Paroc Hvac Slab AluCoat 100 mm"><option value="Flumroc Conlit Ductboard"><option value="Kautschuk 19 mm"><option value="Kautschuk 32 mm"><option value="Armaflex-Kleber"><option value="Alu-Klebeband 50 mm"><option value="Alu-Klebeband 75 mm"><option value="Tellerschweissstifte"><option value="Brandschutzwurst"><option value="Alublech"><option value="Blechschrauben"><option value="Pittseal"></datalist>
-          <div class="grid3"><div><label for="m-menge">Menge</label><input id="m-menge" inputmode="decimal" placeholder="10"></div>
-            <div><label for="m-einheit">Einheit</label><select id="m-einheit"><option>Stk</option><option>m²</option><option>m</option><option>Rolle</option><option>Paket</option><option>Karton</option><option>Dose</option></select></div>
-            <div><label for="m-bis">Bis wann</label><select id="m-bis"><option value="normal">Normal</option><option value="dringend">Dringend</option><option value="heute">HEUTE</option></select></div></div>
-          <div><label for="m-text">Bemerkung</label><input id="m-text" placeholder="z. B. Lieferung direkt auf Baustelle"></div>
-          <button class="primary" type="button" id="m-send">Material bestellen</button>
+          <div class="grid3"><div><label for="m-menge" data-i18n="menge">Menge</label><input id="m-menge" inputmode="decimal" placeholder="10"></div>
+            <div><label for="m-einheit" data-i18n="einheit">Einheit</label><select id="m-einheit"><option>Stk</option><option>m²</option><option>m</option><option>Rolle</option><option>Paket</option><option>Karton</option><option>Dose</option></select></div>
+            <div><label for="m-bis" data-i18n="bisWann">Bis wann</label><select id="m-bis"><option value="normal" data-i18n="normal">Normal</option><option value="dringend" data-i18n="dringend">Dringend</option><option value="heute" data-i18n="heute">HEUTE</option></select></div></div>
+          <div><label for="m-text" data-i18n="bemerkung">Bemerkung</label><input id="m-text" data-i18n-ph="matBemerkungPh" placeholder="z. B. Lieferung direkt auf Baustelle"></div>
+          <button class="primary" type="button" id="m-send" data-i18n="matBestellen">Material bestellen</button>
           <div class="msg" id="m-mat" role="status"></div>
         </div>
-        <h2>Bestellungen dieser Baustelle</h2><div class="list" id="l-mat"></div>
+        <h2 data-i18n="bestellungen">Bestellungen dieser Baustelle</h2><div class="list" id="l-mat"></div>
       </section>
 
       <!-- CHEF -->
@@ -271,15 +271,19 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
 <div id="sn" hidden><div class="sn-bar"><button class="primary" type="button" id="sn-print" style="width:auto">Drucken / PDF</button><button class="ghost" type="button" id="sn-close" style="background:#fff;color:#14212e">Schliessen</button></div><div class="sn-page" id="sn-page"></div></div>
 <div id="lb" hidden role="dialog" aria-label="Foto"><img id="lb-img" alt="Foto gross"><button type="button" aria-label="Schliessen" id="lb-x">×</button></div>
 <nav class="tabs" role="tablist" id="nav" hidden>
-  <button role="tab" data-t="zeit" aria-selected="true" id="tab-zeit"><span class="ic">🕒</span>Zeit</button>
-  <button role="tab" data-t="fotos" aria-selected="false"><span class="ic">📷</span>Fotos</button>
-  <button role="tab" data-t="pend" aria-selected="false"><span class="ic">✅</span>Pendenzen</button>
-  <button role="tab" data-t="mat" aria-selected="false"><span class="ic">📦</span>Material</button>
+  <button role="tab" data-t="zeit" aria-selected="true" id="tab-zeit"><span class="ic">🕒</span><span data-i18n="tabZeit">Zeit</span></button>
+  <button role="tab" data-t="fotos" aria-selected="false"><span class="ic">📷</span><span data-i18n="tabFotos">Fotos</span></button>
+  <button role="tab" data-t="pend" aria-selected="false"><span class="ic">✅</span><span data-i18n="tabPend">Pendenzen</span></button>
+  <button role="tab" data-t="mat" aria-selected="false"><span class="ic">📦</span><span data-i18n="tabMat">Material</span></button>
   <button role="tab" data-t="chef" aria-selected="false" id="tab-chef" hidden><span class="ic">👔</span>Chef</button>
 </nav>
 
+<script src="i18n.js"></script>
 <script>
 'use strict';
+const SPR_OK = ['de', 'en', 'sq', 'it', 'ro', 'hu'];
+function autoSprache() { const l = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'de']).map(x => String(x).slice(0, 2).toLowerCase()).find(x => SPR_OK.includes(x)); return l || 'de'; }
+function tg(s) { return t(s); }
 /* ====== EINSTELLUNG: Adresse der Google-Web-App (nach Bereitstellung eintragen) ====== */
 const API = 'https://script.google.com/macros/s/AKfycbwP-W3Ina6q94Ow3d_Bc-_rGwlFl2o8TzxvTCjBGHgPwLwu-Th6W1aXA-qJZauzzsiA0g/exec';   // z. B. 'https://script.google.com/macros/s/XXXXXXXX/exec'
 
@@ -291,10 +295,10 @@ const isoD = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.ge
 const today = () => isoD(new Date());
 const nowHM = () => { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
 const dd = s => { if (!s) return ''; const [y, m, d] = s.split('-'); return d + '.' + m + '.' + y; };
-const wdD = s => { const [y, m, d] = s.split('-'); return ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][new Date(+y, +m - 1, +d).getDay()] + ' ' + dd(s); };
+const wdD = s => { const [y, m, d] = s.split('-'); const dt = new Date(+y, +m - 1, +d); let wd; try { wd = dt.toLocaleDateString((typeof LANG !== 'undefined' && LANG !== 'de') ? LANG : 'de-CH', { weekday: 'short' }).replace('.', ''); } catch (e) { wd = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][dt.getDay()]; } return wd.charAt(0).toUpperCase() + wd.slice(1) + ' ' + dd(s); };
 const fmtT = ms => { const d = new Date(ms); return d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }); };
 const std = m => (Math.abs(m || 0) / 60).toFixed(2);
-const mins = m => Math.round(m || 0) + ' Min.';
+const mins = m => Math.round(m || 0) + ' min';
 const thumb = id => 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w1600';
 function msg(id, t, k) { if (!id || !$(id)) return; $(id).textContent = t; $(id).className = 'msg' + (k ? ' ' + k : ''); }
 function lsGet(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
@@ -311,7 +315,7 @@ async function api(action, data) {
   let r;
   try {
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 30000);
-    r = await fetch(API, { method: 'POST', body: JSON.stringify(Object.assign({ action, token: sess && sess.token, chef: isChef() }, data || {})), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: ctl.signal });
+    r = await fetch(API, { method: 'POST', body: JSON.stringify(Object.assign({ action, token: sess && sess.token, chef: isChef(), sprache: isChef() ? 'de' : LANG }, data || {})), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: ctl.signal });
     clearTimeout(t);
   } catch (e) { throw new NetzFehler('Kein Empfang'); }
   let j; try { j = await r.json(); } catch (e) { throw new NetzFehler('Server nicht erreichbar'); }
@@ -353,9 +357,9 @@ async function flush() {
 }
 function netUI() {
   const b = $('net'), n = wartend.length;
-  if (!navigator.onLine) { b.className = 'net off'; b.textContent = '📶 Kein Empfang' + (n ? ' – ' + n + (n === 1 ? ' Eintrag wartet' : ' Einträge warten') + '. Bei Empfang App wieder öffnen.' : ' – du kannst trotzdem stempeln.'); }
-  else if (n) { b.className = 'net off'; b.textContent = '⏳ ' + n + (n === 1 ? ' Eintrag wird' : ' Einträge werden') + ' gesendet …'; }
-  else { const f = lsGet('asn-fehler', []); if (f.length) { b.className = 'net bad'; b.textContent = '⚠️ ' + f[f.length - 1].fehler + ' (antippen zum Ausblenden)'; } else { b.className = 'net okk'; b.textContent = '✓ Verbunden – alles gesendet'; } }
+  if (!navigator.onLine) { b.className = 'net off'; b.textContent = n ? '📶 ' + n + ' ' + t('wartenEintraege') : t('keinEmpfang'); }
+  else if (n) { b.className = 'net off'; b.textContent = '⏳ ' + n + ' – ' + t('wirdGesendetPunkte'); }
+  else { const f = lsGet('asn-fehler', []); if (f.length) { b.className = 'net bad'; b.textContent = '⚠️ ' + f[f.length - 1].fehler + ' (antippen zum Ausblenden)'; } else { b.className = 'net okk'; b.textContent = t('verbunden'); } }
 }
 $('net').onclick = () => { lsSet('asn-fehler', []); netUI(); };
 addEventListener('online', () => { netUI(); flush(); }); addEventListener('offline', netUI);
@@ -379,11 +383,11 @@ async function namenLaden() {
 }
 $('l-chef').onclick = () => { chefMode = !chefMode; $('l-name-wrap').hidden = chefMode; $('l-chef').textContent = chefMode ? 'Monteur-Anmeldung' : 'Chef-Anmeldung'; msg('m-login', chefMode ? 'Chef-PIN eingeben.' : ''); };
 $('l-go').onclick = async () => {
-  const pin = $('l-pin').value.trim(); if (!/^\d{4}$/.test(pin)) { msg('m-login', 'Bitte 4-stellige PIN eingeben.', 'err'); return; }
+  const pin = $('l-pin').value.trim(); if (!/^\d{4}$/.test(pin)) { msg('m-login', t('pinFalsch'), 'err'); return; }
   $('l-go').disabled = true; msg('m-login', 'Anmelden …');
   try {
     if (chefMode) { const j = await api('chefLogin', { pin }); sess = { token: j.token, chef: true, name: 'Jehon Avdiu' }; }
-    else { const id = $('l-name').value; if (!id) throw new Error('Bitte Namen wählen.'); const j = await api('login', { monteur: id, pin }); sess = { token: j.token, id: j.monteur.id, name: j.monteur.name }; }
+    else { const id = $('l-name').value; if (!id) throw new Error(t('nameFehlt')); const j = await api('login', { monteur: id, pin }); sess = { token: j.token, id: j.monteur.id, name: j.monteur.name }; }
     lsSet('asn-sess', sess); $('l-pin').value = ''; msg('m-login', ''); zeige(); laden();
   } catch (e) { msg('m-login', e.message === 'GESPERRT' ? 'Zugang gesperrt – bitte bei Jehon melden.' : (e instanceof NetzFehler ? 'Kein Empfang – Anmelden braucht Internet.' : e.message), 'err'); }
   $('l-go').disabled = false;
@@ -398,6 +402,7 @@ $('h-out').onclick = () => abmelden(); $('b-out').onclick = () => { sess = null;
 function zeige() {
   $('v-block').hidden = true; $('v-login').hidden = !!sess; $('v-app').hidden = !sess; $('nav').hidden = !sess;
   $('tab-chef').hidden = !isChef();
+  LANG = isChef() ? 'de' : autoSprache(); i18nAnwenden();
   if (!sess) { namenLaden(); installHinweis(); return; }
   $('h-name').textContent = sess.name + (isChef() ? ' (Chef)' : '');
   if (isChef() && lsGet('asn-tab', '') === 'zeit') tab('chef'); else tab(lsGet('asn-tab', isChef() ? 'chef' : 'zeit'));
@@ -406,7 +411,7 @@ function zeige() {
 function installHinweis() {
   const st = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   if (st) return; const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  $('install').hidden = false; $('install').textContent = ios ? 'Tipp: Unten auf «Teilen» ⬆️ und dann «Zum Home-Bildschirm» – dann ist ASN wie eine App auf dem Handy.' : 'Tipp: Im Browser-Menü ⋮ «App installieren» bzw. «Zum Startbildschirm hinzufügen» – dann ist ASN wie eine App auf dem Handy.';
+  $('install').hidden = false; $('install').textContent = ios ? t('installIos') : t('installAndroid');
 }
 
 /* ====== Reiter ====== */
@@ -450,9 +455,10 @@ function locLokal(l, bid) { // Anzeige solange offline (Server prüft nach)
 }
 function locEl(l, was) {
   if (!l) return null;
-  if (l.status === 'in') return el('div', 'loc in', '✅ ' + was + ': auf der Baustelle (' + l.dist + ' m)');
-  if (l.status === 'out') return el('div', 'loc out', '⚠️ ' + was + ': ' + (l.dist >= 1000 ? (l.dist / 1000).toFixed(1).replace('.', ',') + ' km' : l.dist + ' m') + ' von der Baustelle entfernt');
-  return el('div', 'loc na', '• ' + was + ': ' + (l.info || 'kein Standort'));
+  if (l.status === 'in') return el('div', 'loc in', '✅ ' + was + ': ' + t('aufBaustelle') + ' (' + l.dist + ' m)');
+  if (l.status === 'out') return el('div', 'loc out', '⚠️ ' + was + ': ' + (l.dist >= 1000 ? (l.dist / 1000).toFixed(1).replace('.', ',') + ' km' : l.dist + ' m') + ' ' + t('entfernt'));
+  const infoKey = { 'Standort nicht freigegeben': 'locNichtFrei', 'Standort nicht ermittelt': 'locNichtErmittelt', 'Baustellen-Standort fehlt': 'locBauFehlt', 'kein Standort': 'locKein', 'Standort auf diesem Gerät nicht verfügbar': 'locNichtVerfuegbar' }[l.info || 'kein Standort'];
+  return el('div', 'loc na', '• ' + was + ': ' + (infoKey ? t(infoKey) : l.info));
 }
 
 /* ====== Stempeluhr (Monteur) ====== */
@@ -485,33 +491,33 @@ function renderStempel() {
   if (laeuft) {
     (x.abschnitte && x.abschnitte.length ? x.abschnitte : [{ baustelle: x.baustelle, von: x.von, bis: '' }]).forEach((a, i, all) => {
       const d = el('div', 'running'); if (a.bis) d.append(bName(a.baustelle) + ': ' + a.von + '–' + a.bis);
-      else { d.append('Arbeit läuft seit ', el('b', '', a.von), (x.datum !== today() ? ' (' + dd(x.datum) + ')' : '') + ' · ' + bName(a.baustelle)); } st.append(d);
-      const l = locEl(a.locStart || (i === 0 ? x.locStart : null), i === 0 ? 'Beginn' : 'Ankunft'); if (l && !a.bis) st.append(l); });
-    if (unterwegs) st.append(el('div', 'loc na', '🚐 Unterwegs seit ' + x.unterwegs.um + ' von ' + bName(x.unterwegs.ab) + ' – bei Ankunft neue Baustelle wählen und stempeln.'));
+      else { d.append(t('laeuftSeit') + ' ', el('b', '', a.von), (x.datum !== today() ? ' (' + dd(x.datum) + ')' : '') + ' · ' + bName(a.baustelle)); } st.append(d);
+      const l = locEl(a.locStart || (i === 0 ? x.locStart : null), i === 0 ? t('beginn') : t('ankunftWort')); if (l && !a.bis) st.append(l); });
+    if (unterwegs) st.append(el('div', 'loc na', t('unterwegsSeit') + ' ' + x.unterwegs.um + ' · ' + bName(x.unterwegs.ab) + ' – ' + t('unterwegsHint')));
   }
   if (fertig) {
-    if (x.status !== 'arbeit') st.append(el('div', 'running', 'Heute: ' + TAG[x.status] + ' ✓'));
-    else { st.append(el('div', 'running', 'Feierabend ✓ – heute erfasst' + (x._wartet ? ' (wird gesendet)' : ''))); if (x.total != null) st.append(rpTable(x)); [locEl(x.locStart, 'Beginn'), locEl(x.locEnde, 'Feierabend')].forEach(l => l && st.append(l)); }
+    if (x.status !== 'arbeit') st.append(el('div', 'running', t('heuteStatus') + ' ' + tg(x.status) + ' ✓'));
+    else { st.append(el('div', 'running', t('feierabendOk') + (x._wartet ? ' (' + t('wirdGesendet') + ')' : ''))); if (x.total != null) st.append(rpTable(x)); [locEl(x.locStart, t('beginn')), locEl(x.locEnde, t('feierabendWort'))].forEach(l => l && st.append(l)); }
   }
 }
 $('s-start').onclick = async () => {
-  if (!bau()) { msg('m-stempel', 'Bitte oben zuerst die Baustelle wählen.', 'err'); $('baustelle').focus(); return; }
+  if (!bau()) { msg('m-stempel', t('bauZuerst'), 'err'); $('baustelle').focus(); return; }
   const b = $('s-start'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …');
   const loc = await standort();
   try { const r = await senden('stempelStart', { baustelle: bau(), loc }, { offline: true });
-    msg('m-stempel', 'Arbeitsbeginn ' + (r.queued ? nowHM() + ' gespeichert – wird bei Empfang gesendet.' : r.j.rapport.von + ' gestempelt.'), 'ok');
+    msg('m-stempel', t('beginnGestempelt') + ' ' + (r.queued ? nowHM() + ' – ' + t('gespeichertWartet') : r.j.rapport.von), 'ok');
     if (!r.queued) await laden(); }
   catch (e) { msg('m-stempel', e.message, 'err'); }
   b.disabled = false; render();
 };
 $('s-stop').onclick = async () => {
-  const p = segVal('s-pause'); if (p == null) { msg('m-stempel', 'Bitte Pause antippen (Keine / 30 Min. / 1 Std. / 1,5 Std.).', 'err'); return; }
-  const t = $('s-arbeit').value.trim(); if (!t) { msg('m-stempel', 'Bitte kurz schreiben, was gemacht wurde.', 'err'); $('s-arbeit').focus(); return; }
+  const p = segVal('s-pause'); if (p == null) { msg('m-stempel', t('pauseWaehlen'), 'err'); return; }
+  const txt = $('s-arbeit').value.trim(); if (!txt) { msg('m-stempel', t('taetigkeitFehlt'), 'err'); $('s-arbeit').focus(); return; }
   const b = $('s-stop'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …');
   const loc = await standort();
-  try { const r = await senden('stempelEnde', { pause: +p, arbeit: t, loc }, { offline: true });
+  try { const r = await senden('stempelEnde', { pause: +p, arbeit: txt, loc }, { offline: true });
     $('s-arbeit').value = ''; segReset('s-pause');
-    msg('m-stempel', r.queued ? 'Feierabend ' + nowHM() + ' gespeichert – wird bei Empfang gesendet.' : 'Feierabend ' + r.j.rapport.bis + ' gestempelt. Total heute ' + std(r.j.rapport.total) + ' Std. Schönen Abend!', 'ok');
+    msg('m-stempel', r.queued ? t('endeGestempelt') + ' ' + nowHM() + ' – ' + t('gespeichertWartet') : t('endeGestempelt') + ' ' + r.j.rapport.bis + '. ' + t('totalHeute') + ' ' + std(r.j.rapport.total) + ' h. ' + t('schoenenAbend'), 'ok');
     if (!r.queued) await laden(); }
   catch (e) { msg('m-stempel', e.message, 'err'); }
   b.disabled = false; render();
@@ -519,45 +525,47 @@ $('s-stop').onclick = async () => {
 const aktBau = x => { const a = x.abschnitte && x.abschnitte.length ? x.abschnitte[x.abschnitte.length - 1] : null; return a ? a.baustelle : x.baustelle; };
 $('s-wechsel').onclick = async () => {
   const x = offenerTag(); if (!x) return;
-  if (!confirm('Abfahrt von ' + bName(aktBau(x)) + ' jetzt stempeln? Die Arbeit dort endet jetzt.')) return;
+  if (!confirm(bName(aktBau(x)) + ': ' + t('abfahrtFrage'))) return;
   const b = $('s-wechsel'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …'); const loc = await standort();
-  try { const r = await senden('wechselAbfahrt', { loc }, { offline: true }); msg('m-stempel', 'Abfahrt ' + (r.queued ? nowHM() + ' gespeichert – wird bei Empfang gesendet.' : 'gestempelt.') + ' Bei Ankunft neue Baustelle stempeln.', 'ok'); if (!r.queued) await laden(); }
+  try { const r = await senden('wechselAbfahrt', { loc }, { offline: true }); msg('m-stempel', (r.queued ? t('gespeichertWartet') + ' ' : '') + t('abfahrtOk'), 'ok'); if (!r.queued) await laden(); }
   catch (e) { msg('m-stempel', e.message, 'err'); } b.disabled = false; render();
 };
 $('s-ankunft').onclick = async () => {
-  const nb = $('s-neu').value; if (!nb) { msg('m-stempel', 'Bitte die neue Baustelle wählen.', 'err'); $('s-neu').focus(); return; }
+  const nb = $('s-neu').value; if (!nb) { msg('m-stempel', t('neueWaehlen'), 'err'); $('s-neu').focus(); return; }
   const b = $('s-ankunft'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …'); const loc = await standort();
   try { const r = await senden('wechselAnkunft', { baustelle: nb, loc }, { offline: true }); lsSet('asn-bau', nb); $('baustelle').value = nb;
-    msg('m-stempel', 'Ankunft ' + bName(nb) + (r.queued ? ' ' + nowHM() + ' gespeichert – wird bei Empfang gesendet.' : ' gestempelt.'), 'ok'); if (!r.queued) await laden(); }
+    msg('m-stempel', t('ankunftOk') + ' ' + bName(nb) + (r.queued ? ' – ' + t('gespeichertWartet') : ''), 'ok'); if (!r.queued) await laden(); }
   catch (e) { msg('m-stempel', e.message, 'err'); } b.disabled = false; render();
 };
 $('s-abwseg').querySelectorAll('button').forEach(b => b.onclick = async () => {
-  const v = b.dataset.v; if (!confirm('Heute als «' + TAG[v] + '» eintragen?')) return;
-  try { const r = await senden('abwesend', { status: v }, { offline: true }); msg('m-stempel', 'Heute: ' + TAG[v] + (r.queued ? ' gespeichert – wird gesendet.' : ' eingetragen.'), 'ok'); if (!r.queued) await laden(); }
+  const v = b.dataset.v; if (!confirm(t('abwFrage') + ' ' + tg(v) + '?')) return;
+  try { const r = await senden('abwesend', { status: v }, { offline: true }); msg('m-stempel', t('heuteStatus') + ' ' + tg(v) + (r.queued ? ' – ' + t('gespeichertWartet') : ' ✓'), 'ok'); if (!r.queued) await laden(); }
   catch (e) { msg('m-stempel', e.message, 'err'); } render();
 });
 function rpTable(x) {
-  const t = el('table', 'rp'); const add = (a, b, c) => { const tr = el('tr', c || ''); tr.append(el('td', '', a), el('td', '', b)); t.append(tr); };
-  if (x.status !== 'arbeit') { add(TAG[x.status], 'kein Arbeitsweg'); return t; }
+  const tb = el('table', 'rp'); const add = (a, b, c) => { const tr = el('tr', c || ''); tr.append(el('td', '', a), el('td', '', b)); tb.append(tr); };
+  const ort = s => { s = String(s || '').replace(/^hin |^retour /, ''); return s === 'Wohnort' ? t('wohnort') : s === 'Lager Oftringen' ? t('lager') : s; };
+  if (x.status !== 'arbeit') { add(tg(x.status), t('keinWeg')); return tb; }
   const abs = x.abschnitte && x.abschnitte.length ? x.abschnitte : [{ baustelle: x.baustelle, von: x.von, bis: x.bis }];
-  abs.forEach(a => add('Arbeitszeit ' + (abs.length > 1 ? bName(a.baustelle) + ' ' : '') + a.von + '–' + (a.bis || '…'), std(dauer(a)) + ' Std.'));
-  add('− Pause', mins(x.pause), 'minus'); add('Arbeitszeit netto', std(x.arbeitNetto) + ' Std.', 'sub');
-  if (x.ab === 'FEHLT' || x.fahrt == null) add('Arbeitsweg', 'Fahrzeit fehlt – Chef prüft');
-  else { const ab2 = String(x.ab || '').split(' / '); add('Arbeitsweg hin (ab ' + ab2[0].replace(/^hin /, '') + ')', mins(x.hin)); add('Arbeitsweg retour (nach ' + (ab2[1] || ab2[0]).replace(/^retour /, '') + ')', mins(x.retour)); add('Arbeitsweg Hin + Rück', mins(x.fahrt), 'sub'); add('− Abzug Weg (max. 30 Min., nie Minus)', mins(-x.abzug), 'minus'); }
-  (x.zwischenDetail || []).forEach(z => add('Zwischenfahrt ' + bName(z.von) + ' → ' + bName(z.nach) + ' (voll bezahlt)', z.bez == null ? 'fehlt' : mins(z.bez)));
-  add('TOTAL (Zeit + Weg' + ((x.zwischen || 0) > 0 ? ' + Zwischenfahrt' : '') + ')', std(x.total) + ' Std.', 'tot'); return t;
+  abs.forEach(a => add(t('arbeitszeit') + ' ' + (abs.length > 1 ? bName(a.baustelle) + ' ' : '') + a.von + '–' + (a.bis || '…'), std(dauer(a)) + ' h'));
+  add('− ' + t('pause'), mins(x.pause), 'minus'); add(t('arbeitNetto'), std(x.arbeitNetto) + ' h', 'sub');
+  if (x.ab === 'FEHLT' || x.fahrt == null) add(t('arbeitsweg'), t('fahrzeitFehlt'));
+  else { const ab2 = String(x.ab || '').split(' / '); add(t('wegHin') + ' (' + ort(ab2[0]) + ')', mins(x.hin)); add(t('wegRetour') + ' (' + ort(ab2[1] || ab2[0]) + ')', mins(x.retour)); add(t('wegTotal'), mins(x.fahrt), 'sub'); add('− ' + t('abzugWeg'), mins(-x.abzug), 'minus'); }
+  (x.zwischenDetail || []).forEach(z => add(t('zwischenfahrt') + ' ' + bName(z.von) + ' → ' + bName(z.nach) + ' (' + t('vollBezahlt') + ')', z.bez == null ? '–' : mins(z.bez)));
+  add(t('totalZeitWeg'), std(x.total) + ' h', 'tot'); return tb;
 }
 const hmMin = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : null; };
+function orig(s) { try { return s ? (typeof s === 'string' ? JSON.parse(s) : s) : {}; } catch (e) { return {}; } }
 function dauer(a) { const v = hmMin(a.von), b = hmMin(a.bis); if (v == null || b == null) return 0; return (b < v ? b + 1440 : b) - v; }
 function tagItem(x, chef) {
   const it = el('div', 'item'); const top = el('div', 'top');
-  const chip = x._wartet ? ['c-wartet', 'wird gesendet'] : x.status !== 'arbeit' ? ['c-abw', TAG[x.status]] : !x.bis ? (x.datum < today() ? ['c-offen', 'offen'] : ['c-neu', 'läuft']) : ['c-ok', std(x.total) + ' Std.'];
+  const chip = x._wartet ? ['c-wartet', t('wirdGesendet')] : x.status !== 'arbeit' ? ['c-abw', tg(x.status)] : !x.bis ? (x.datum < today() ? ['c-offen', t('offen')] : ['c-neu', t('laeuft')]) : ['c-ok', std(x.total) + ' h'];
   top.append(el('div', '', (chef ? (x.monteurName || '') + ' · ' : '') + wdD(x.datum) + (x.baustelle ? ' · ' + bName(x.baustelle) : '')), el('span', 'chip ' + chip[0], chip[1])); it.append(top);
-  if (x.status === 'arbeit' && !x.bis) it.append(x.datum < today() ? el('div', 'loc out', '⚠️ Feierabend nicht gestempelt (Beginn ' + x.von + ')') : el('div', 'loc na', 'Arbeit läuft seit ' + x.von));
-  else if (x.status === 'arbeit' && x.total != null) { it.append(rpTable(x)); if (x.arbeit) it.append(el('div', 'txt', x.arbeit)); }
+  if (x.status === 'arbeit' && !x.bis) it.append(x.datum < today() ? el('div', 'loc out', t('feierabendFehlt') + ' (' + x.von + ')') : el('div', 'loc na', t('laeuftSeit') + ' ' + x.von));
+  else if (x.status === 'arbeit' && x.total != null) { it.append(rpTable(x)); if (x.arbeit) { it.append(el('div', 'txt', (!isChef() && x.arbeitOriginal) || x.arbeit)); if (isChef() && x.arbeitOriginal) it.append(el('div', 'meta', 'Original: ' + x.arbeitOriginal)); } }
   const absL = x.abschnitte && x.abschnitte.length > 1 ? x.abschnitte : null;
-  if (absL) absL.forEach((a, i) => { [locEl(a.locStart, (i === 0 ? 'Beginn ' : 'Ankunft ') + bName(a.baustelle)), locEl(a.locEnde, (i === absL.length - 1 ? 'Feierabend ' : 'Abfahrt ') + bName(a.baustelle))].forEach(l => l && it.append(l)); });
-  else [locEl(x.locStart, 'Beginn'), locEl(x.locEnde, 'Feierabend')].forEach(l => l && it.append(l));
+  if (absL) absL.forEach((a, i) => { [locEl(a.locStart, (i === 0 ? t('beginn') : t('ankunftWort')) + ' ' + bName(a.baustelle)), locEl(a.locEnde, (i === absL.length - 1 ? t('feierabendWort') : t('abfahrtWort')) + ' ' + bName(a.baustelle))].forEach(l => l && it.append(l)); });
+  else [locEl(x.locStart, t('beginn')), locEl(x.locEnde, t('feierabendWort'))].forEach(l => l && it.append(l));
   if (x.offline) it.append(el('div', 'meta', 'Offline gestempelt (Zeit vom Handy)'));
   if (x.nachgetragen) it.append(el('div', 'meta red', 'Vom Chef nachgetragen / korrigiert'));
   if (chef && x.verlauf && x.verlauf.length) it.append(el('div', 'meta', 'Verlauf: ' + x.verlauf.map(v => fmtT(v.am) + ' ' + v.was + ' (' + v.von + ')').join(' · ')));
@@ -566,9 +574,9 @@ function tagItem(x, chef) {
 function renderZeit() {
   if (isChef()) return; const L = $('l-zeit'); L.innerHTML = '';
   const lim = new Date(); lim.setDate(lim.getDate() - 14); const r = meineTage().filter(x => x.datum >= isoD(lim));
-  if (!r.length) { L.append(el('div', 'empty', 'Noch keine Einträge.')); return; }
+  if (!r.length) { L.append(el('div', 'empty', t('keineEintraege'))); return; }
   let tot = 0; r.forEach(x => { if (x.total != null && x.bis) tot += x.total; });
-  const s = el('div', 'item'); const tp = el('div', 'top'); tp.append(el('strong', '', 'Total 14 Tage'), el('strong', '', std(tot) + ' Std.')); s.append(tp); L.append(s);
+  const s = el('div', 'item'); const tp = el('div', 'top'); tp.append(el('strong', '', t('total14')), el('strong', '', std(tot) + ' h')); s.append(tp); L.append(s);
   r.forEach(x => L.append(tagItem(x, false)));
 }
 
@@ -583,67 +591,67 @@ function jpegB64(file) { // verkleinern (max. 1600 px), JPEG 80 %
     img.onerror = () => no(new Error('Foto kann nicht gelesen werden')); img.src = u; });
 }
 $('f-send').onclick = async () => {
-  if (!bau()) { msg('m-fotos', 'Bitte oben die Baustelle wählen.', 'err'); return; } if (!fFiles.length) { msg('m-fotos', 'Bitte zuerst Fotos aufnehmen.', 'err'); return; }
+  if (!bau()) { msg('m-fotos', t('bauZuerst'), 'err'); return; } if (!fFiles.length) { msg('m-fotos', t('fotosZuerst'), 'err'); return; }
   $('f-send').disabled = true;
   try { msg('m-fotos', 'Fotos werden vorbereitet …'); const bilder = []; for (const f of fFiles) bilder.push(await jpegB64(f));
-    msg('m-fotos', 'Wird gesendet …');
+    msg('m-fotos', t('wirdGesendetPunkte'));
     const r = await senden('fotoSenden', { baustelle: bau(), typ: segVal('f-typ'), pendenzNr: $('f-nr').value.trim(), bereich: $('f-bereich').value.trim(), text: $('f-text').value.trim(), bilder }, { offline: true });
-    fFiles = []; thumbs(); $('f-text').value = ''; $('f-nr').value = ''; msg('m-fotos', r.queued ? 'Gespeichert – Fotos werden bei Empfang gesendet.' : 'Fotos gesendet. Danke!', 'ok'); if (!r.queued) laden(); }
+    fFiles = []; thumbs(); $('f-text').value = ''; $('f-nr').value = ''; msg('m-fotos', r.queued ? t('gespeichertWartet') : t('fotosGesendet'), 'ok'); if (!r.queued) laden(); }
   catch (e) { msg('m-fotos', e.message + ' – Fotos bleiben ausgewählt.', 'err'); }
   $('f-send').disabled = false;
 };
 function imgs(list, cls) { const g = el('div', 'imgs' + (cls ? ' ' + cls : '')); (list || []).forEach(f => { const b = el('button', 'pic'); b.type = 'button'; b.setAttribute('aria-label', 'Foto gross anzeigen'); const im = el('img'); im.src = thumb(f.id); im.alt = 'Foto'; im.loading = 'lazy'; b.append(im); b.onclick = () => { $('lb-img').src = thumb(f.id); $('lb').hidden = false; }; g.append(b); }); return g; }
 $('lb-x').onclick = () => { $('lb').hidden = true; };
 function renderFotos() {
-  const L = $('l-fotos'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', 'Oben die Baustelle wählen.')); return; }
+  const L = $('l-fotos'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', t('bauZuerst'))); return; }
   const r = (D && D.fotos || []).filter(x => x.baustelle === bau()).sort((a, b) => b.erstellt - a.erstellt).slice(0, 40);
-  if (!r.length) { L.append(el('div', 'empty', 'Noch keine Fotos für diese Baustelle.')); return; }
-  r.forEach(x => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('div', '', ({ vorher: 'Vorher', nachher: 'Nachher' }[x.typ] || 'Allgemein') + (x.pendenzNr ? ' · Nr. ' + x.pendenzNr : '') + (x.bereich ? ' · ' + x.bereich : '')), el('span', 'meta', fmtT(x.erstellt))); it.append(top); if (x.text) it.append(el('div', 'txt', x.text)); it.append(imgs(x.fotos), el('div', 'meta', x.monteur || '')); L.append(it); });
+  if (!r.length) { L.append(el('div', 'empty', t('keineFotos'))); return; }
+  r.forEach(x => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('div', '', t(x.typ === 'vorher' ? 'vorher' : x.typ === 'nachher' ? 'nachher' : 'allgemein') + (x.pendenzNr ? ' · Nr. ' + x.pendenzNr : '') + (x.bereich ? ' · ' + ((!isChef() && orig(x.original).bereich) || x.bereich) : '')), el('span', 'meta', fmtT(x.erstellt))); it.append(top); const og = orig(x.original); if (x.text) it.append(el('div', 'txt', (!isChef() && og.text) || x.text)); if (isChef() && (og.text || og.bereich)) it.append(el('div', 'meta', 'Original: ' + [og.bereich, og.text].filter(Boolean).join(' · '))); it.append(imgs(x.fotos), el('div', 'meta', x.monteur || '')); L.append(it); });
 }
 
 /* ====== Pendenzen ====== */
 let pFilter = 'offen', pZiel = null; seg('p-filter', v => { pFilter = v; renderPend(); });
-const pLab = { offen: 'Offen', gemeldet: 'Gemeldet – Kontrolle', erledigt: 'Erledigt' };
+const pLab = { get offen() { return t('offen'); }, get gemeldet() { return t('gemeldet'); }, get erledigt() { return t('erledigt'); } };
 function renderPend() {
-  const L = $('l-pend'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', 'Oben die Baustelle wählen.')); return; }
+  const L = $('l-pend'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', t('bauZuerst'))); return; }
   const gemeldet = new Set(wartend.filter(w => w.action === 'pendenzMelden').map(w => w.data.id));
   const all = (D && D.pendenzen || []).filter(x => x.baustelle === bau()).map(x => gemeldet.has(x.id) && x.status === 'offen' ? Object.assign({}, x, { status: 'gemeldet', _wartet: true }) : x).sort((a, b) => (+a.nr || 0) - (+b.nr || 0));
   const r = pFilter === 'offen' ? all.filter(x => x.status !== 'erledigt') : all;
-  const s = el('div', 'item'); const tp = el('div', 'top'); tp.append(el('strong', '', 'Noch offen'), el('strong', '', all.filter(x => x.status !== 'erledigt').length + ' von ' + all.length)); s.append(tp); L.append(s);
-  if (!r.length) { L.append(el('div', 'empty', pFilter === 'offen' ? 'Keine offenen Pendenzen. 👍' : 'Keine Pendenzen für diese Baustelle.')); return; }
+  const s = el('div', 'item'); const tp = el('div', 'top'); tp.append(el('strong', '', t('nochOffen')), el('strong', '', all.filter(x => x.status !== 'erledigt').length + ' ' + t('von') + ' ' + all.length)); s.append(tp); L.append(s);
+  if (!r.length) { L.append(el('div', 'empty', pFilter === 'offen' ? t('keineOffenen') : t('keinePend'))); return; }
   r.forEach(x => {
-    const it = el('div', 'item' + (x.status === 'erledigt' ? ' done' : '')); const top = el('div', 'top'); const l = el('div', 'row'); l.append(el('span', 'nr', x.nr), el('span', 'meta', x.bereich || ''));
-    top.append(l, el('span', 'chip c-' + x.status, x._wartet ? 'wird gesendet' : pLab[x.status])); it.append(top, el('div', 'txt', x.text));
-    if (x.bilder && x.bilder.length) it.append(el('div', 'lbl', '📌 So sieht es aus / was zu tun ist'), imgs(x.bilder, 'big2'));
-    if (x.fotos && x.fotos.length) it.append(el('div', 'lbl ok', '✓ Foto erledigt'), imgs(x.fotos));
-    if (x.gemeldetVon) it.append(el('div', 'meta', 'Gemeldet: ' + x.gemeldetVon + (x.gemeldetAm ? ' · ' + fmtT(x.gemeldetAm) : '')));
+    const it = el('div', 'item' + (x.status === 'erledigt' ? ' done' : '')); const top = el('div', 'top'); const l = el('div', 'row'); l.append(el('span', 'nr', x.nr), el('span', 'meta', (!isChef() && x.bereichUe) || x.bereich || ''));
+    top.append(l, el('span', 'chip c-' + x.status, x._wartet ? t('wirdGesendet') : pLab[x.status])); it.append(top, el('div', 'txt', (!isChef() && x.textUe) || x.text));
+    if (x.bilder && x.bilder.length) it.append(el('div', 'lbl', t('soSiehtEsAus')), imgs(x.bilder, 'big2'));
+    if (x.fotos && x.fotos.length) it.append(el('div', 'lbl ok', t('fotoErledigt')), imgs(x.fotos));
+    if (x.gemeldetVon) it.append(el('div', 'meta', t('gemeldetVon') + ': ' + x.gemeldetVon + (x.gemeldetAm ? ' · ' + fmtT(x.gemeldetAm) : '')));
     const row = el('div', 'row');
-    if (x.status === 'offen' && !isChef()) { const b = el('button', 'ghost small', '✓ Erledigt melden + Foto'); b.type = 'button'; b.onclick = () => { pZiel = x; $('p-file').click(); }; const b2 = el('button', 'ghost small', 'Ohne Foto melden'); b2.type = 'button'; b2.onclick = () => melden(x, []); row.append(b, b2); }
+    if (x.status === 'offen' && !isChef()) { const b = el('button', 'ghost small', t('meldenFoto')); b.type = 'button'; b.onclick = () => { pZiel = x; $('p-file').click(); }; const b2 = el('button', 'ghost small', t('meldenOhne')); b2.type = 'button'; b2.onclick = () => melden(x, []); row.append(b, b2); }
     if (isChef() && x.status === 'gemeldet' && !x._wartet) { const b = el('button', 'ghost small', 'Kontrolliert ✓'); b.type = 'button'; b.onclick = () => chefAkt('pendenzKontrolle', { id: x.id, ok: true }, 'm-pend'); const b2 = el('button', 'ghost small', 'Zurück auf offen'); b2.type = 'button'; b2.onclick = () => chefAkt('pendenzKontrolle', { id: x.id, ok: false }, 'm-pend'); row.append(b, b2); }
     if (row.childNodes.length) it.append(row); L.append(it);
   });
 }
 async function melden(x, files) {
-  try { msg('m-pend', 'Wird gesendet …'); const bilder = []; for (const f of files) bilder.push(await jpegB64(f));
-    const r = await senden('pendenzMelden', { id: x.id, bilder }, { offline: true }); msg('m-pend', r.queued ? 'Nr. ' + x.nr + ' gespeichert – wird bei Empfang gesendet.' : 'Nr. ' + x.nr + ' als erledigt gemeldet.', 'ok'); if (!r.queued) await laden(); }
+  try { msg('m-pend', t('wirdGesendetPunkte')); const bilder = []; for (const f of files) bilder.push(await jpegB64(f));
+    const r = await senden('pendenzMelden', { id: x.id, bilder }, { offline: true }); msg('m-pend', 'Nr. ' + x.nr + ' – ' + (r.queued ? t('gespeichertWartet') : t('gemeldetOk')), 'ok'); if (!r.queued) await laden(); }
   catch (e) { msg('m-pend', e.message, 'err'); } render();
 }
 $('p-file').onchange = e => { const f = [...e.target.files]; e.target.value = ''; if (pZiel && f.length) melden(pZiel, f); pZiel = null; };
 
 /* ====== Material ====== */
 $('m-send').onclick = async () => {
-  if (!bau()) { msg('m-mat', 'Bitte oben die Baustelle wählen.', 'err'); return; } if (!$('m-artikel').value.trim()) { msg('m-mat', 'Bitte Material angeben.', 'err'); return; }
+  if (!bau()) { msg('m-mat', t('bauZuerst'), 'err'); return; } if (!$('m-artikel').value.trim()) { msg('m-mat', t('materialFehlt'), 'err'); return; }
   try { const r = await senden('materialBestellen', { baustelle: bau(), artikel: $('m-artikel').value.trim(), menge: $('m-menge').value.trim(), einheit: $('m-einheit').value, bis: $('m-bis').value, text: $('m-text').value.trim() }, { offline: true });
-    ['m-artikel', 'm-menge', 'm-text'].forEach(i => $(i).value = ''); msg('m-mat', r.queued ? 'Gespeichert – wird bei Empfang gesendet.' : 'Bestellung gesendet.', 'ok'); if (!r.queued) laden(); }
+    ['m-artikel', 'm-menge', 'm-text'].forEach(i => $(i).value = ''); msg('m-mat', r.queued ? t('gespeichertWartet') : t('bestellungOk'), 'ok'); if (!r.queued) laden(); }
   catch (e) { msg('m-mat', e.message, 'err'); }
 };
-const mLab = { neu: 'Neu', bestellt: 'Bestellt', geliefert: 'Geliefert' };
+const mLab = { get neu() { return t('neu'); }, get bestellt() { return t('bestellt'); }, get geliefert() { return t('geliefert'); } };
 function renderMat() {
-  const L = $('l-mat'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', 'Oben die Baustelle wählen.')); return; }
+  const L = $('l-mat'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', t('bauZuerst'))); return; }
   const r = (D && D.material || []).filter(x => x.baustelle === bau()).sort((a, b) => b.erstellt - a.erstellt).slice(0, 40);
-  if (!r.length) { L.append(el('div', 'empty', 'Noch keine Bestellungen.')); return; }
+  if (!r.length) { L.append(el('div', 'empty', t('keineBestellungen'))); return; }
   r.forEach(x => { const st = x.status || 'neu'; const it = el('div', 'item' + (st === 'geliefert' ? ' done' : '')); const top = el('div', 'top');
-    top.append(el('div', '', (x.menge ? x.menge + ' ' + x.einheit + ' · ' : '') + x.artikel), el('span', 'chip c-' + st, mLab[st])); it.append(top, el('div', 'meta', (x.monteur || '') + ' · ' + fmtT(+x.erstellt) + (x.bis && x.bis !== 'normal' ? ' · ' + x.bis.toUpperCase() : ''))); if (x.text) it.append(el('div', 'txt', x.text));
+    const og = orig(x.original); top.append(el('div', '', (x.menge ? x.menge + ' ' + x.einheit + ' · ' : '') + ((!isChef() && og.artikel) || x.artikel)), el('span', 'chip c-' + st, mLab[st])); it.append(top, el('div', 'meta', (x.monteur || '') + ' · ' + fmtT(+x.erstellt) + (x.bis && x.bis !== 'normal' ? ' · ' + t(x.bis) : ''))); if (x.text) it.append(el('div', 'txt', (!isChef() && og.text) || x.text)); if (isChef() && (og.artikel || og.text)) it.append(el('div', 'meta', 'Original: ' + [og.artikel, og.text].filter(Boolean).join(' · ')));
     if (isChef() && st !== 'geliefert') { const nx = st === 'bestellt' ? 'geliefert' : 'bestellt'; const b = el('button', 'ghost small', '→ ' + mLab[nx]); b.type = 'button'; b.onclick = () => chefAkt('materialStatus', { id: x.id, status: nx }, 'm-mat'); const row = el('div', 'row'); row.append(b); it.append(row); }
     L.append(it); });
 }
