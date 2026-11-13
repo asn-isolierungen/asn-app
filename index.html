@@ -117,6 +117,10 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
 .sn-t .n{text-align:right;white-space:nowrap}
 .sn-t td.rg{font-weight:700;color:#b45f00}
 .sn-t tr.gelb td{background:#fff3b0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.matbox{border:1.5px solid #e3a000;background:#fffaf0;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.matrow{display:flex;align-items:center;gap:10px;min-height:44px}.matrow label{display:flex;align-items:center;gap:10px;flex:1;font-weight:600;font-size:15px;text-transform:none;letter-spacing:0;color:inherit;margin:0;cursor:pointer}
+.matrow input[type=checkbox]{width:24px;height:24px;flex:0 0 24px;margin:0}.matrow input.mq{width:110px;flex:0 0 110px}
+.matinfo{font-size:13px;background:#fff6e5;border-radius:8px;padding:6px 8px}
 .item.gelb{background:#fff6c7;border-color:#e3b800}
 .auf{font-size:13px;font-weight:700;color:var(--muted,#5d6b79)}.auf.regie{color:#b45f00}
 .sn-t tr.sum td{font-weight:700;border-top:1.5px solid #14212e;border-bottom:1.5px solid #14212e}
@@ -212,6 +216,8 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
             <div class="seg" id="f-typ"><button type="button" class="ghost small" data-v="vorher" aria-pressed="false" data-i18n="vorher">Vorher</button><button type="button" class="ghost small" data-v="nachher" aria-pressed="true" data-i18n="nachher">Nachher</button><button type="button" class="ghost small" data-v="allgemein" aria-pressed="false" data-i18n="allgemein">Allgemein</button></div></div>
           <div><span class="lab" data-i18n="auftrag">Auftrag</span>
             <div class="seg" id="f-auftrag"><button type="button" class="ghost small" data-v="normal" aria-pressed="false" data-i18n="auftragNormal">Normal</button><button type="button" class="ghost small" data-v="regie" aria-pressed="false" data-i18n="auftragRegie">Regie</button></div></div>
+          <div id="f-mat" class="matbox" hidden><span class="lab" data-i18n="regieMaterial">Material (Regie)</span><div id="f-mat-liste"></div>
+            <label for="f-mat-sonst" data-i18n="sonstMaterial">Sonstiges Material</label><textarea id="f-mat-sonst" maxlength="500" data-i18n-ph="sonstMaterialPh" placeholder="z. B. 40 mm Thermisch, 5 m²"></textarea></div>
           <div class="grid2"><div><label for="f-nr" data-i18n="pendNr">Pendenz-Nr. (falls)</label><input id="f-nr" inputmode="numeric" placeholder="z. B. 27"></div><div><label for="f-bereich" data-i18n="bereich">Bereich / Raum</label><input id="f-bereich" placeholder="z. B. 1.OG Steigzone 3"></div></div>
           <div><label for="f-text" data-i18n="bemerkung">Bemerkung</label><input id="f-text" data-i18n-ph="bemerkungPh" placeholder="kurz, was man sieht"></div>
           <div class="thumbs" id="f-thumbs"></div>
@@ -427,7 +433,7 @@ $('h-out').onclick = () => abmelden(); $('b-out').onclick = () => { sess = null;
 function zeige() {
   $('v-block').hidden = true; $('v-login').hidden = !!sess; $('v-app').hidden = !sess; $('nav').hidden = !sess;
   $('tab-chef').hidden = !isChef();
-  LANG = isChef() ? 'de' : autoSprache(); i18nAnwenden();
+  LANG = isChef() ? 'de' : autoSprache(); i18nAnwenden(); try { if (!$('f-mat-liste').querySelector(':checked')) matAufbauen(); } catch (e) { /* beim ersten Laden noch nicht bereit – wird unten aufgebaut */ }
   if (!sess) { namenLaden(); installHinweis(); return; }
   $('h-name').textContent = sess.name + (isChef() ? ' (Chef)' : '');
   if (isChef() && lsGet('asn-tab', '') === 'zeit') tab('chef'); else tab(lsGet('asn-tab', isChef() ? 'chef' : 'zeit'));
@@ -644,7 +650,19 @@ function renderZeit() {
 }
 
 /* ====== Fotos ====== */
-let fFiles = []; seg('f-typ'); seg('f-auftrag');
+let fFiles = []; seg('f-typ');
+// Regie-Material (für alle Baustellen gleich). Bestätigte Dämmstärken 30/50/60/100 mm.
+const REGIE_MAT = [['th30', '30 mm Thermisch Mineralfaser Alu-kaschiert', 'm²'], ['th50', '50 mm Thermisch Mineralfaser Alu-kaschiert', 'm²'], ['th60', '60 mm Thermisch Mineralfaser Alu-kaschiert', 'm²'],
+  ['th100', '100 mm Thermisch Mineralfaser Alu-kaschiert', 'm²'], ['brand', 'Brandschutz', 'm²'], ['kbSilber', 'Alu-Klebeband silber', 'rollen'], ['kbSchwarz', 'Alu-Klebeband schwarz', 'rollen']];
+function matAufbauen() { const L = $('f-mat-liste'); L.innerHTML = '';
+  REGIE_MAT.forEach(([id, name, eh]) => { const row = el('div', 'matrow'); const lb = el('label'); const cb = el('input'); cb.type = 'checkbox'; cb.dataset.m = id; lb.append(cb, document.createTextNode(name));
+    const q = el('input', 'mq'); q.inputMode = 'decimal'; q.dataset.mq = id; q.maxLength = 8; q.placeholder = t('menge') + ' ' + (eh === 'm²' ? 'm²' : t('rollen')); q.hidden = true; q.setAttribute('aria-label', t('menge') + ' ' + name);
+    cb.onchange = () => { q.hidden = !cb.checked; if (!cb.checked) q.value = ''; }; row.append(lb, q); L.append(row); }); }
+function matReset() { $('f-mat').hidden = true; $('f-mat-sonst').value = ''; matAufbauen(); }
+function matWerte() { return [...$('f-mat-liste').querySelectorAll('input[type=checkbox]')].filter(c => c.checked).map(c => ({ id: c.dataset.m, menge: $('f-mat-liste').querySelector('[data-mq="' + c.dataset.m + '"]').value.trim() })); }
+matAufbauen(); seg('f-auftrag', v => { $('f-mat').hidden = v !== 'regie'; });
+function matText(x) { const m = orig(x.material); if (!m || (!(m.liste || []).length && !m.sonst)) return '';
+  return (m.liste || []).map(i => i.name + (i.menge ? ' (' + i.menge + ' ' + ((REGIE_MAT.find(r => r[0] === i.id) || [])[2] === 'rollen' ? t('rollen') : 'm²') + ')' : '')).concat(m.sonst ? [t('sonstMaterial') + ': ' + ((!isChef() && m.sonstOrig) || m.sonst)] : []).join(' · '); }
 function thumbs() { const t = $('f-thumbs'); t.innerHTML = ''; fFiles.forEach((f, i) => { const w = el('div'); const im = el('img'); im.src = URL.createObjectURL(f); im.alt = 'Foto'; const b = el('button', '', '×'); b.type = 'button'; b.setAttribute('aria-label', 'Foto entfernen'); b.onclick = () => { fFiles.splice(i, 1); thumbs(); }; w.append(im, b); t.append(w); }); }
 $('f-files').onchange = e => { fFiles.push(...e.target.files); e.target.value = ''; thumbs(); };
 function jpegB64(file) { // verkleinern (max. 1600 px), JPEG 80 %
@@ -656,11 +674,14 @@ function jpegB64(file) { // verkleinern (max. 1600 px), JPEG 80 %
 $('f-send').onclick = async () => {
   if (!bau()) { msg('m-fotos', t('bauZuerst'), 'err'); return; } if (!fFiles.length) { msg('m-fotos', t('fotosZuerst'), 'err'); return; }
   const fAuf = segVal('f-auftrag'); if (!fAuf) { msg('m-fotos', t('auftragWaehlen'), 'err'); return; }
+  const fMat = fAuf === 'regie' ? matWerte() : [], fSonst = fAuf === 'regie' ? $('f-mat-sonst').value.trim() : '';
+  if (fAuf === 'regie' && !fMat.length && !fSonst) { msg('m-fotos', t('regieMaterialFehlt'), 'err'); return; }
+  if (fMat.some(m => m.menge && !/^\d{1,5}([.,]\d{1,2})?$/.test(m.menge))) { msg('m-fotos', t('mengeUngueltig'), 'err'); return; }
   $('f-send').disabled = true;
   try { msg('m-fotos', 'Fotos werden vorbereitet …'); const bilder = []; for (const f of fFiles) bilder.push(await jpegB64(f));
     msg('m-fotos', t('wirdGesendetPunkte'));
-    const r = await senden('fotoSenden', { baustelle: bau(), typ: segVal('f-typ'), pendenzNr: $('f-nr').value.trim(), bereich: $('f-bereich').value.trim(), text: $('f-text').value.trim(), bilder, auftrag: fAuf }, { offline: true });
-    fFiles = []; thumbs(); $('f-text').value = ''; $('f-nr').value = ''; segReset('f-auftrag'); msg('m-fotos', r.queued ? t('gespeichertWartet') : t('fotosGesendet'), 'ok'); if (!r.queued) laden(); }
+    const r = await senden('fotoSenden', { baustelle: bau(), typ: segVal('f-typ'), pendenzNr: $('f-nr').value.trim(), bereich: $('f-bereich').value.trim(), text: $('f-text').value.trim(), bilder, auftrag: fAuf, material: fMat, materialSonst: fSonst }, { offline: true });
+    fFiles = []; thumbs(); $('f-text').value = ''; $('f-nr').value = ''; segReset('f-auftrag'); matReset(); msg('m-fotos', r.queued ? t('gespeichertWartet') : t('fotosGesendet'), 'ok'); if (!r.queued) laden(); }
   catch (e) { msg('m-fotos', e.message + ' – Fotos bleiben ausgewählt.', 'err'); }
   $('f-send').disabled = false;
 };
@@ -672,6 +693,7 @@ function renderFotos() {
   if (!r.length) { L.append(el('div', 'empty', t('keineFotos'))); return; }
   r.forEach(x => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('div', '', t(x.typ === 'vorher' ? 'vorher' : x.typ === 'nachher' ? 'nachher' : 'allgemein') + (x.pendenzNr ? ' · Nr. ' + x.pendenzNr : '') + (x.bereich ? ' · ' + ((!isChef() && orig(x.original).bereich) || x.bereich) : '')), el('span', 'meta', fmtT(x.erstellt))); it.append(top); const og = orig(x.original);
     if (x.auftrag) it.append(el('div', 'auf' + (x.auftrag === 'regie' ? ' regie' : ''), t('auftrag') + ': ' + aufTxt(x.auftrag)));
+    const mt = matText(x); if (mt) it.append(el('div', 'matinfo', t('regieMaterial') + ': ' + mt));
     if (isChef() && x.auftrag !== 'regie' && REGIE_RX.test((x.text || '') + ' ' + (x.bereich || '') + ' ' + (og.text || '') + ' ' + (og.bereich || ''))) { it.classList.add('gelb'); it.append(el('div', 'meta red', '⚠ Auftrag «' + aufTxt(x.auftrag) + '», aber in der Bemerkung steht «Regie» – bitte prüfen')); } if (x.text) it.append(el('div', 'txt', (!isChef() && og.text) || x.text)); it.append(imgs(x.fotos), el('div', 'meta', x.monteur || '')); L.append(it); });
 }
 
