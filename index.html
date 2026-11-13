@@ -263,7 +263,8 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
         <div class="card" id="au-start">
           <h2 style="margin:0">📋 Aufnahme vor Ort</h2>
           <p class="hint" style="margin:0">Für Offerte oder Regie-Kostendach. Funktioniert auch ohne Empfang – alles bleibt auf dem Handy gespeichert, bis es gesendet ist.</p>
-          <div><span class="lab">Art</span><div class="seg" id="au-typ"><button type="button" class="ghost small" data-v="offerte" aria-pressed="false">Offerte</button><button type="button" class="ghost small" data-v="kostendach" aria-pressed="false">Regie-Kostendach</button></div></div>
+          <div><span class="lab">Art</span><div class="seg" id="au-typ"><button type="button" class="ghost small" data-v="offerte" aria-pressed="false">Offerte</button><button type="button" class="ghost small" data-v="kostendach" aria-pressed="false">Regie-Kostendach</button><button type="button" class="ghost small" data-v="pendenzen" aria-pressed="false">Pendenzen (Hauptauftrag)</button></div>
+            <p class="hint" style="margin:6px 0 0">«Pendenzen»: jede Position wird beim Absenden automatisch eine Pendenz für die Monteure dieser Baustelle (mit deinen Fotos).</p></div>
           <div><label for="au-objekt">Objekt / Baustelle</label><input id="au-objekt" list="au-objekte" maxlength="120" autocomplete="off" placeholder="z. B. Schulhaus Rothrist"><datalist id="au-objekte"></datalist></div>
           <div><label for="au-adresse">Adresse</label><input id="au-adresse" maxlength="160" autocomplete="off" placeholder="Strasse Nr, PLZ Ort"></div>
           <div><label for="au-kunde">Kunde / Auftraggeber</label><input id="au-kunde" maxlength="120" autocomplete="off"></div>
@@ -775,7 +776,7 @@ $('f-send').onclick = async () => {
     }
     thumbs(); if (!fFiles.length) { $('f-text').value = ''; $('f-nr').value = ''; segReset('f-auftrag'); matReset(); }
     msg('m-fotos', '✓ ' + ok + ' ' + t('fotosGespeichert') + (fehler ? ' – ' + fehler + ' ' + t('fotosNichtLesbar') : ''), fehler ? 'err' : 'ok');
-    await qLoad(); flush();
+    await qLoad(); renderFotos(); flush();
   } catch (e) { msg('m-fotos', e.message + ' – ' + ok + ' ' + t('fotosGespeichert'), 'err'); await qLoad(); flush(); }
   $('f-send').disabled = false;
 };
@@ -784,11 +785,17 @@ $('lb-x').onclick = () => { $('lb').hidden = true; };
 function renderFotos() {
   const L = $('l-fotos'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', t('bauZuerst'))); return; }
   const r = (D && D.fotos || []).filter(x => x.baustelle === bau()).sort((a, b) => b.erstellt - a.erstellt).slice(0, 40);
-  if (!r.length) { L.append(el('div', 'empty', t('keineFotos'))); return; }
+  // Noch wartende Fotos (auf dem Handy gespeichert, Upload läuft) sofort anzeigen
+  const wg = {}; wartend.filter(w => w.action === 'fotoSenden' && w.data && w.data.baustelle === bau()).forEach(w => { const k = w.data.gruppe || w.k; wg[k] = (wg[k] || 0) + 1; });
+  Object.keys(wg).filter(k => !r.some(x => x.id === k)).forEach(k => L.append(el('div', 'item', '⏳ ' + wg[k] + ' ' + (wg[k] === 1 ? 'Foto' : 'Fotos') + ' – ' + t('wirdGesendetPunkte'))));
+  if (!r.length) { if (!Object.keys(wg).length) L.append(el('div', 'empty', t('keineFotos'))); return; }
   r.forEach(x => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('div', '', t(x.typ === 'vorher' ? 'vorher' : x.typ === 'nachher' ? 'nachher' : 'allgemein') + (x.pendenzNr ? ' · Nr. ' + x.pendenzNr : '') + (x.bereich ? ' · ' + ((!isChef() && orig(x.original).bereich) || x.bereich) : '')), el('span', 'meta', fmtT(x.erstellt))); it.append(top); const og = orig(x.original);
     if (x.auftrag) it.append(el('div', 'auf' + (x.auftrag === 'regie' ? ' regie' : ''), t('auftrag') + ': ' + aufTxt(x.auftrag)));
     const mt = matText(x); if (mt) it.append(el('div', 'matinfo', t('regieMaterial') + ': ' + mt));
-    if (isChef() && x.auftrag !== 'regie' && REGIE_RX.test((x.text || '') + ' ' + (x.bereich || '') + ' ' + (og.text || '') + ' ' + (og.bereich || ''))) { it.classList.add('gelb'); it.append(el('div', 'meta red', '⚠ Auftrag «' + aufTxt(x.auftrag) + '», aber in der Bemerkung steht «Regie» – bitte prüfen')); } if (x.text) it.append(el('div', 'txt', (!isChef() && og.text) || x.text)); it.append(imgs(x.fotos), el('div', 'meta', x.monteur || '')); L.append(it); });
+    if (isChef() && x.auftrag !== 'regie' && REGIE_RX.test((x.text || '') + ' ' + (x.bereich || '') + ' ' + (og.text || '') + ' ' + (og.bereich || ''))) { it.classList.add('gelb'); it.append(el('div', 'meta red', '⚠ Auftrag «' + aufTxt(x.auftrag) + '», aber in der Bemerkung steht «Regie» – bitte prüfen')); } if (x.text) it.append(el('div', 'txt', (!isChef() && og.text) || x.text)); it.append(imgs(x.fotos), el('div', 'meta', x.monteur || ''));
+    if (isChef()) { const d = el('button', 'ghost small', '🗑 Löschen'); d.type = 'button'; d.style.alignSelf = 'flex-start';
+      d.onclick = () => { if (confirm('Diesen Foto-Eintrag (' + (x.fotos || []).length + ' Fotos) löschen?\n\nDie Fotos kommen in den Drive-Papierkorb (30 Tage wiederherstellbar).')) chefAkt('fotoEintragLoeschen', { id: x.id }, 'm-fotos'); }; it.append(d); }
+    L.append(it); });
 }
 
 /* ====== Pendenzen ====== */
@@ -810,6 +817,7 @@ function renderPend() {
     const row = el('div', 'row');
     if (x.status === 'offen' && !isChef()) { const b = el('button', 'ghost small', t('meldenFoto')); b.type = 'button'; b.onclick = () => { pZiel = x; $('p-file').click(); }; const b2 = el('button', 'ghost small', t('meldenOhne')); b2.type = 'button'; b2.onclick = () => melden(x, []); row.append(b, b2); }
     if (isChef() && x.status === 'gemeldet' && !x._wartet) { const b = el('button', 'ghost small', 'Kontrolliert ✓'); b.type = 'button'; b.onclick = () => chefAkt('pendenzKontrolle', { id: x.id, ok: true }, 'm-pend'); const b2 = el('button', 'ghost small', 'Zurück auf offen'); b2.type = 'button'; b2.onclick = () => chefAkt('pendenzKontrolle', { id: x.id, ok: false }, 'm-pend'); row.append(b, b2); }
+    if (isChef() && !x._wartet) { const d = el('button', 'ghost small', '🗑 Löschen'); d.type = 'button'; d.onclick = () => { if (confirm('Pendenz Nr. ' + x.nr + ' löschen?\n\nSie verschwindet für alle Monteure. Eine Kopie bleibt im Protokoll.')) chefAkt('pendenzLoeschen', { id: x.id }, 'm-pend'); }; row.append(d); }
     if (row.childNodes.length) it.append(row); L.append(it);
   });
 }
@@ -1064,7 +1072,7 @@ function renderAuf() {
   const dl = $('au-objekte'); dl.innerHTML = ''; (D && D.baustellen || []).forEach(b => { const o = el('option'); o.value = b.name; dl.append(o); });
   $('au-start').hidden = !!AUF; $('au-lauf').hidden = !AUF; if (!AUF) return;
   const nf = AUF.positionen.reduce((s, p) => s + p.fotos.length, 0);
-  $('au-k-typ').textContent = AUF.typ === 'offerte' ? 'OFFERTE' : 'REGIE-KOSTENDACH'; $('au-k-objekt').textContent = AUF.objekt;
+  $('au-k-typ').textContent = AUF.typ === 'offerte' ? 'OFFERTE' : AUF.typ === 'pendenzen' ? 'PENDENZENLISTE (HAUPTAUFTRAG)' : 'REGIE-KOSTENDACH'; $('au-k-objekt').textContent = AUF.objekt;
   $('au-k-info').textContent = [AUF.adresse, AUF.kunde].filter(Boolean).join(' · ') + (AUF.adresse || AUF.kunde ? ' — ' : '') + (AUF.bisher ? 'bisher ' + AUF.bisher + ' Pos. gesendet + ' : '') + AUF.positionen.length + ' neue Positionen · ' + nf + ' Fotos';
   $('au-k-status').textContent = AUF.status === 'sendet' ? 'wird gesendet …' : 'auf dem Handy gespeichert'; $('au-k-status').className = 'chip ' + (AUF.status === 'sendet' ? 'c-wartet' : 'c-neu');
   const L = $('au-liste'); L.innerHTML = '';
@@ -1094,6 +1102,7 @@ $('au-go').onclick = async () => {
   const typ = segVal('au-typ'), objekt = $('au-objekt').value.trim(); let adresse = $('au-adresse').value.trim(); const kunde = $('au-kunde').value.trim();
   if (!typ) { msg('m-au-start', 'Art wählen: Offerte oder Regie-Kostendach.', 'err'); return; }
   if (objekt.length < 2) { msg('m-au-start', 'Objekt / Baustelle eingeben.', 'err'); return; }
+  if (typ === 'pendenzen' && !(D && D.baustellen || []).some(x => x.name.toLowerCase() === objekt.toLowerCase())) { msg('m-au-start', 'Für «Pendenzen» bitte eine bestehende Baustelle aus der Liste wählen (damit die Monteure die Pendenzen sehen). Neue Baustelle zuerst oben mit «➕ Neue Baustelle erfassen» anlegen.', 'err'); return; }
   if (!adresse) { const b = (D && D.baustellen || []).find(x => x.name === objekt); if (b && b.adresse) adresse = b.adresse; }
   // Fortlaufende Liste pro Objekt + Art: bestehende Aufnahme weiterführen (Server, sonst Handy-Gedächtnis wenn kein Empfang)
   const key = typ + '|' + objekt.toLowerCase(); let vor = (lsGet('asn-auf-objekte', {}))[key] || null;
@@ -1174,7 +1183,7 @@ async function aufSenden(auto) {
     const hist = lsGet('asn-auf-hist', []); hist.unshift({ objekt: AUF.objekt, typ: AUF.typ, am: Date.now(), pos: j.positionen, fotos: j.fotos }); lsSet('asn-auf-hist', hist.slice(0, 10));
     for (const p of AUF.positionen) for (const f of p.fotos) if (f.id) await IDB.bildDel(f.id).catch(() => {});
     await IDB.aufDel(AUF.id); const o = AUF.objekt; AUF = null; renderAuf();
-    msg('m-au-start', '✓ Abgeschlossen und gesendet: «' + o + '» – ' + j.positionen + ' Positionen, ' + j.fotos + ' Fotos. Die E-Mail an j.avdiu@asn-isolierungen.ch ist unterwegs (PDF mit Fotos + Excel).', 'ok');
+    msg('m-au-start', '✓ Abgeschlossen und gesendet: «' + o + '» – ' + j.positionen + ' Positionen, ' + j.fotos + ' Fotos. Die E-Mail an j.avdiu@asn-isolierungen.ch ist unterwegs (PDF mit Fotos + Excel).' + (j.pendenzen ? ' ' + j.pendenzen + '.' : ''), 'ok'); laden();
   } catch (e) {
     if (e instanceof NetzFehler) msg('m-au', '📶 Kein Empfang / Verbindung unterbrochen – alles bleibt auf dem Handy. Bei Empfang wird automatisch weitergesendet (oder nochmals «Absenden» tippen).', 'err');
     else { AUF.status = 'entwurf'; await aufSpeichern(); msg('m-au', 'Fehler: ' + e.message + ' – die Aufnahme bleibt gespeichert. Bitte nochmals «Absenden» tippen.', 'err'); }
