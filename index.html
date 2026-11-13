@@ -1214,20 +1214,21 @@ function render() {
 }
 
 /* ====== Automatisch aktualisieren (iPhone behält sonst alte Versionen) ====== */
-const APP_VERSION = '2026-11-13.18';
+const APP_VERSION = '2026-11-13.19';
+window.asnNeuLaden = () => location.reload();
 function sicherNeuLaden() { // nur wenn nichts Ungespeichertes offen ist
   const a = document.activeElement, tippt = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
   return !tippt && !fFiles.length && $('au-pos').hidden && !$('s-arbeit').value.trim() && !$('m-artikel').value.trim();
 }
 async function versionPruefen() {
   if (!navigator.onLine) return;
-  try { const res = await fetch('version.txt?x=' + Date.now(), { cache: 'no-store' }); if (!res.ok) return;
-    const v = (await res.text()).trim();
-    if (!/^\d{4}-\d{2}-\d{2}\.\d+$/.test(v) || v === APP_VERSION) return;   // nur echte Versionsnummer zählt
+  try { const res = await fetch('./?v=' + Date.now(), { cache: 'no-store' }); if (!res.ok) return;   // aktuelle App-Seite vom Server
+    const m = /APP_VERSION = '(\d{4}-\d{2}-\d{2}\.\d+)'/.exec(await res.text()); const v = m && m[1];
+    if (!v || v === APP_VERSION) return;   // nur echte Versionsnummer zählt
     try { const reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.update(); } catch (e) {}
     let schon = ''; try { schon = sessionStorage.getItem('asn-reload') || ''; } catch (e) {}
-    if (schon !== v && sicherNeuLaden()) { try { sessionStorage.setItem('asn-reload', v); } catch (e) {} location.reload(); return; } // pro Version nur 1× automatisch
-    const b = $('net'); b.className = 'net off'; b.textContent = '🔄 Neue Version bereit – hier tippen zum Aktualisieren'; b.onclick = () => location.reload();
+    if (schon !== v && sicherNeuLaden()) { try { sessionStorage.setItem('asn-reload', v); } catch (e) {} window.asnNeuLaden(); return; } // pro Version nur 1× automatisch
+    const b = $('net'); b.className = 'net off'; b.textContent = '🔄 Neue Version bereit – hier tippen zum Aktualisieren'; b.onclick = () => window.asnNeuLaden();
   } catch (e) { /* kein Netz → später */ }
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') versionPruefen(); });
