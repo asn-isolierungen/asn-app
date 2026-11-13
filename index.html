@@ -210,6 +210,8 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
         <div class="card">
           <div><span class="lab" data-i18n="art">Art</span>
             <div class="seg" id="f-typ"><button type="button" class="ghost small" data-v="vorher" aria-pressed="false" data-i18n="vorher">Vorher</button><button type="button" class="ghost small" data-v="nachher" aria-pressed="true" data-i18n="nachher">Nachher</button><button type="button" class="ghost small" data-v="allgemein" aria-pressed="false" data-i18n="allgemein">Allgemein</button></div></div>
+          <div><span class="lab" data-i18n="auftrag">Auftrag</span>
+            <div class="seg" id="f-auftrag"><button type="button" class="ghost small" data-v="normal" aria-pressed="false" data-i18n="auftragNormal">Normal</button><button type="button" class="ghost small" data-v="regie" aria-pressed="false" data-i18n="auftragRegie">Regie</button></div></div>
           <div class="grid2"><div><label for="f-nr" data-i18n="pendNr">Pendenz-Nr. (falls)</label><input id="f-nr" inputmode="numeric" placeholder="z. B. 27"></div><div><label for="f-bereich" data-i18n="bereich">Bereich / Raum</label><input id="f-bereich" placeholder="z. B. 1.OG Steigzone 3"></div></div>
           <div><label for="f-text" data-i18n="bemerkung">Bemerkung</label><input id="f-text" data-i18n-ph="bemerkungPh" placeholder="kurz, was man sieht"></div>
           <div class="thumbs" id="f-thumbs"></div>
@@ -642,7 +644,7 @@ function renderZeit() {
 }
 
 /* ====== Fotos ====== */
-let fFiles = []; seg('f-typ');
+let fFiles = []; seg('f-typ'); seg('f-auftrag');
 function thumbs() { const t = $('f-thumbs'); t.innerHTML = ''; fFiles.forEach((f, i) => { const w = el('div'); const im = el('img'); im.src = URL.createObjectURL(f); im.alt = 'Foto'; const b = el('button', '', '×'); b.type = 'button'; b.setAttribute('aria-label', 'Foto entfernen'); b.onclick = () => { fFiles.splice(i, 1); thumbs(); }; w.append(im, b); t.append(w); }); }
 $('f-files').onchange = e => { fFiles.push(...e.target.files); e.target.value = ''; thumbs(); };
 function jpegB64(file) { // verkleinern (max. 1600 px), JPEG 80 %
@@ -653,11 +655,12 @@ function jpegB64(file) { // verkleinern (max. 1600 px), JPEG 80 %
 }
 $('f-send').onclick = async () => {
   if (!bau()) { msg('m-fotos', t('bauZuerst'), 'err'); return; } if (!fFiles.length) { msg('m-fotos', t('fotosZuerst'), 'err'); return; }
+  const fAuf = segVal('f-auftrag'); if (!fAuf) { msg('m-fotos', t('auftragWaehlen'), 'err'); return; }
   $('f-send').disabled = true;
   try { msg('m-fotos', 'Fotos werden vorbereitet …'); const bilder = []; for (const f of fFiles) bilder.push(await jpegB64(f));
     msg('m-fotos', t('wirdGesendetPunkte'));
-    const r = await senden('fotoSenden', { baustelle: bau(), typ: segVal('f-typ'), pendenzNr: $('f-nr').value.trim(), bereich: $('f-bereich').value.trim(), text: $('f-text').value.trim(), bilder }, { offline: true });
-    fFiles = []; thumbs(); $('f-text').value = ''; $('f-nr').value = ''; msg('m-fotos', r.queued ? t('gespeichertWartet') : t('fotosGesendet'), 'ok'); if (!r.queued) laden(); }
+    const r = await senden('fotoSenden', { baustelle: bau(), typ: segVal('f-typ'), pendenzNr: $('f-nr').value.trim(), bereich: $('f-bereich').value.trim(), text: $('f-text').value.trim(), bilder, auftrag: fAuf }, { offline: true });
+    fFiles = []; thumbs(); $('f-text').value = ''; $('f-nr').value = ''; segReset('f-auftrag'); msg('m-fotos', r.queued ? t('gespeichertWartet') : t('fotosGesendet'), 'ok'); if (!r.queued) laden(); }
   catch (e) { msg('m-fotos', e.message + ' – Fotos bleiben ausgewählt.', 'err'); }
   $('f-send').disabled = false;
 };
@@ -667,7 +670,9 @@ function renderFotos() {
   const L = $('l-fotos'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', t('bauZuerst'))); return; }
   const r = (D && D.fotos || []).filter(x => x.baustelle === bau()).sort((a, b) => b.erstellt - a.erstellt).slice(0, 40);
   if (!r.length) { L.append(el('div', 'empty', t('keineFotos'))); return; }
-  r.forEach(x => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('div', '', t(x.typ === 'vorher' ? 'vorher' : x.typ === 'nachher' ? 'nachher' : 'allgemein') + (x.pendenzNr ? ' · Nr. ' + x.pendenzNr : '') + (x.bereich ? ' · ' + ((!isChef() && orig(x.original).bereich) || x.bereich) : '')), el('span', 'meta', fmtT(x.erstellt))); it.append(top); const og = orig(x.original); if (x.text) it.append(el('div', 'txt', (!isChef() && og.text) || x.text)); it.append(imgs(x.fotos), el('div', 'meta', x.monteur || '')); L.append(it); });
+  r.forEach(x => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('div', '', t(x.typ === 'vorher' ? 'vorher' : x.typ === 'nachher' ? 'nachher' : 'allgemein') + (x.pendenzNr ? ' · Nr. ' + x.pendenzNr : '') + (x.bereich ? ' · ' + ((!isChef() && orig(x.original).bereich) || x.bereich) : '')), el('span', 'meta', fmtT(x.erstellt))); it.append(top); const og = orig(x.original);
+    if (x.auftrag) it.append(el('div', 'auf' + (x.auftrag === 'regie' ? ' regie' : ''), t('auftrag') + ': ' + aufTxt(x.auftrag)));
+    if (isChef() && x.auftrag !== 'regie' && REGIE_RX.test((x.text || '') + ' ' + (x.bereich || '') + ' ' + (og.text || '') + ' ' + (og.bereich || ''))) { it.classList.add('gelb'); it.append(el('div', 'meta red', '⚠ Auftrag «' + aufTxt(x.auftrag) + '», aber in der Bemerkung steht «Regie» – bitte prüfen')); } if (x.text) it.append(el('div', 'txt', (!isChef() && og.text) || x.text)); it.append(imgs(x.fotos), el('div', 'meta', x.monteur || '')); L.append(it); });
 }
 
 /* ====== Pendenzen ====== */
