@@ -282,13 +282,15 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
               <label for="au-matsonst">Sonstiges Material</label><textarea id="au-matsonst" maxlength="500" placeholder="z. B. 40 mm Thermisch, 5 m²"></textarea></div>
             <div class="matbox" style="border-color:#c0602a;background:#fff4ee"><span class="lab">Erschwernisse</span><div id="au-ersch"></div>
               <label for="au-erschsonst">Sonstige Erschwernis</label><input id="au-erschsonst" maxlength="300" autocomplete="off" placeholder="z. B. nur nachts möglich"></div>
+            <div><label for="au-zeit">Zeitaufwand in Std. (freiwillig)</label><input id="au-zeit" inputmode="decimal" maxlength="7" autocomplete="off" placeholder="z. B. 2,5 – leer lassen, wenn nicht nötig" style="max-width:260px"></div>
             <div><label for="au-bem">Bemerkung</label><textarea id="au-bem" maxlength="1000"></textarea></div>
             <div class="grid2"><button class="ghost" type="button" id="au-abbr">Abbrechen</button><button class="primary" type="button" id="au-pos-save">Position speichern</button></div>
             <div class="msg" id="m-au-pos" role="status"></div>
           </div>
           <div class="list" id="au-liste"></div>
           <div class="card">
-            <button class="primary" type="button" id="au-senden" style="background:#1d7a3e;color:#fff">✅ Erledigt &amp; absenden</button>
+            <button class="primary" type="button" id="au-senden" style="background:#1d7a3e;color:#fff">📧 Abschliessen – an Jehon senden</button>
+            <p class="hint" style="margin:0">Geht als E-Mail an j.avdiu@asn-isolierungen.ch: PDF (Fotos bei jeder Position) + Excel-Liste.</p>
             <div class="msg" id="m-au" role="status"></div>
             <button class="link small" type="button" id="au-verwerfen" style="color:#b42318">Aufnahme verwerfen</button>
           </div>
@@ -404,16 +406,24 @@ async function api(action, data, wartenMs) {
 
 /* ====== Warteschlange (offline) in IndexedDB – auch Fotos ====== */
 const IDB = { db: null,
-  open() { return this.db ? Promise.resolve(this.db) : new Promise((ok, no) => { const q = indexedDB.open('asn', 2);
-    q.onupgradeneeded = () => { const d = q.result; if (!d.objectStoreNames.contains('q')) d.createObjectStore('q', { keyPath: 'k', autoIncrement: true }); if (!d.objectStoreNames.contains('auf')) d.createObjectStore('auf', { keyPath: 'id' }); };
+  open() { return this.db ? Promise.resolve(this.db) : new Promise((ok, no) => { const q = indexedDB.open('asn', 3);
+    q.onupgradeneeded = () => { const d = q.result; if (!d.objectStoreNames.contains('q')) d.createObjectStore('q', { keyPath: 'k', autoIncrement: true }); if (!d.objectStoreNames.contains('auf')) d.createObjectStore('auf', { keyPath: 'id' }); if (!d.objectStoreNames.contains('aufbild')) d.createObjectStore('aufbild', { keyPath: 'id' }); };
     q.onsuccess = () => { this.db = q.result; ok(this.db); }; q.onerror = () => no(q.error); }); },
   async tx(mode, fn, store) { const st = store || 'q'; const db = await Promise.race([this.open(), new Promise((_, no) => setTimeout(() => no(new Error('Speicher auf dem Handy nicht verfügbar')), 4000))]); return new Promise((ok, no) => { const t = db.transaction(st, mode); const s = t.objectStore(st); const r = fn(s); t.oncomplete = () => ok(r && r.result); t.onerror = () => no(t.error); }); },
   add(v) { return this.tx('readwrite', s => s.add(v)); }, all() { return this.tx('readonly', s => s.getAll()); }, del(k) { return this.tx('readwrite', s => s.delete(k)); },
+  keys() { return this.tx('readonly', s => s.getAllKeys()); }, get(k) { return this.tx('readonly', s => s.get(k)); },
+  // Übersicht ohne Fotodaten (bei 300 Fotos nie alles gleichzeitig in den Speicher laden)
+  async leicht() { const db = await this.open(); return new Promise((ok, no) => { const out = []; const t = db.transaction('q', 'readonly'); const c = t.objectStore('q').openCursor();
+    c.onsuccess = () => { const cur = c.result; if (!cur) return; const v = cur.value; const d = Object.assign({}, v.data); if (d.bilder) d.bilder = [];
+      out.push({ k: v.k, action: v.action, am: v.am, wer: v.wer, data: d }); cur.continue(); };
+    t.oncomplete = () => ok(out); t.onerror = () => no(t.error); }); },
   // Aufnahme vor Ort (Entwurf mit Fotos) – bleibt auf dem Handy, bis alles gesendet ist
-  aufPut(v) { return this.tx('readwrite', s => s.put(v), 'auf'); }, aufAll() { return this.tx('readonly', s => s.getAll(), 'auf'); }, aufDel(id) { return this.tx('readwrite', s => s.delete(id), 'auf'); }
+  aufPut(v) { return this.tx('readwrite', s => s.put(v), 'auf'); }, aufAll() { return this.tx('readonly', s => s.getAll(), 'auf'); }, aufDel(id) { return this.tx('readwrite', s => s.delete(id), 'auf'); },
+  // grosse Fotos der Aufnahme einzeln (die Aufnahme selbst enthält nur kleine Vorschaubilder)
+  bildPut(v) { return this.tx('readwrite', s => s.put(v), 'aufbild'); }, bildGet(id) { return this.tx('readonly', s => s.get(id), 'aufbild'); }, bildDel(id) { return this.tx('readwrite', s => s.delete(id), 'aufbild'); }
 };
 let wartend = [];
-async function qLoad() { try { wartend = await IDB.all() || []; } catch (e) { wartend = []; } netUI(); }
+async function qLoad() { try { wartend = await IDB.leicht() || []; } catch (e) { wartend = []; } netUI(); }
 async function senden(action, data, opt) {   // opt.offline = darf in Warteschlange
   try { const j = await api(action, data); return { ok: true, j }; }
   catch (e) {
@@ -425,13 +435,20 @@ let flushing = false;
 async function flush() {
   if (flushing || !navigator.onLine || !sess) return; flushing = true;
   try {
-    const items = (await IDB.all()) || [];
-    for (const it of items) {
-      if (it.wer && sess && it.wer !== (sess.id || 'chef')) continue;
-      try { await api(it.action, it.data); await IDB.del(it.k); }
-      catch (e) { if (e instanceof NetzFehler) break; await IDB.del(it.k); const f = lsGet('asn-fehler', []); f.push({ am: Date.now(), was: it.action, fehler: e.message }); lsSet('asn-fehler', f.slice(-20)); }
+    var keys = (await IDB.keys()) || []; let rest = keys.length;
+    for (const k of keys) {               // eins nach dem anderen laden + senden (Speicher schonen)
+      const it = await IDB.get(k); if (!it) { rest--; continue; }
+      if (it.wer && sess && it.wer !== (sess.id || 'chef')) { rest--; continue; }
+      try { await api(it.action, it.data, it.action === 'fotoSenden' ? 120000 : 30000); await IDB.del(it.k); }
+      catch (e) { if (e instanceof NetzFehler) break;
+        it.versuche = (it.versuche || 0) + 1;        // Serverfehler: bis 3x nochmals versuchen, erst dann verwerfen + melden
+        if (it.versuche < 3) { try { await IDB.tx('readwrite', s => s.put(it)); } catch (x) {} continue; }
+        await IDB.del(it.k); const f = lsGet('asn-fehler', []); f.push({ am: Date.now(), was: it.action, fehler: e.message }); lsSet('asn-fehler', f.slice(-20)); }
+      rest--; wartend = wartend.filter(w => w.k !== k); netUI();
     }
   } finally { flushing = false; await qLoad(); }
+  // Während des Sendens neu dazugekommene Einträge (z. B. weitere Fotos) gleich hinterher senden
+  try { const neu = ((await IDB.keys()) || []).filter(k => !keys.includes(k)); if (neu.length && navigator.onLine) { setTimeout(flush, 500); return; } } catch (e) {}
   laden();
 }
 function netUI() {
@@ -724,7 +741,11 @@ function matWerte() { return [...$('f-mat-liste').querySelectorAll('input[type=c
 matAufbauen(); seg('f-auftrag', v => { $('f-mat').hidden = v !== 'regie'; });
 function matText(x) { const m = orig(x.material); if (!m || (!(m.liste || []).length && !m.sonst)) return '';
   return (m.liste || []).map(i => i.name + (i.menge ? ' (' + i.menge + ' ' + ((REGIE_MAT.find(r => r[0] === i.id) || [])[2] === 'rollen' ? t('rollen') : 'm²') + ')' : '')).concat(m.sonst ? [t('sonstMaterial') + ': ' + ((!isChef() && m.sonstOrig) || m.sonst)] : []).join(' · '); }
-function thumbs() { const t = $('f-thumbs'); t.innerHTML = ''; fFiles.forEach((f, i) => { const w = el('div'); const im = el('img'); im.src = URL.createObjectURL(f); im.alt = 'Foto'; const b = el('button', '', '×'); b.type = 'button'; b.setAttribute('aria-label', 'Foto entfernen'); b.onclick = () => { fFiles.splice(i, 1); thumbs(); }; w.append(im, b); t.append(w); }); }
+// Vorschau: höchstens 12 kleine Bilder anzeigen (bei 300 Fotos sonst Speicherproblem), Rest als Zahl
+let fUrls = [];
+function thumbs() { const box = $('f-thumbs'); box.innerHTML = ''; fUrls.forEach(u => URL.revokeObjectURL(u)); fUrls = [];
+  fFiles.slice(0, 12).forEach((f, i) => { const w = el('div'); const im = el('img'); const u = URL.createObjectURL(f); fUrls.push(u); im.src = u; im.alt = 'Foto'; im.loading = 'lazy'; const b = el('button', '', '×'); b.type = 'button'; b.setAttribute('aria-label', 'Foto entfernen'); b.onclick = () => { fFiles.splice(i, 1); thumbs(); }; w.append(im, b); box.append(w); });
+  if (fFiles.length) box.append(el('span', 'meta', fFiles.length + ' ' + t('fotosAusgewaehlt'))); }
 $('f-files').onchange = e => { fFiles.push(...e.target.files); e.target.value = ''; thumbs(); };
 function jpegB64(file) { // verkleinern (max. 1600 px), JPEG 80 %
   return new Promise((ok, no) => { const img = new Image(); const u = URL.createObjectURL(file);
@@ -739,11 +760,23 @@ $('f-send').onclick = async () => {
   if (fAuf === 'regie' && !fMat.length && !fSonst) { msg('m-fotos', t('regieMaterialFehlt'), 'err'); return; }
   if (fMat.some(m => m.menge && !/^\d{1,5}([.,]\d{1,2})?$/.test(m.menge))) { msg('m-fotos', t('mengeUngueltig'), 'err'); return; }
   $('f-send').disabled = true;
-  try { msg('m-fotos', 'Fotos werden vorbereitet …'); const bilder = []; for (const f of fFiles) bilder.push(await jpegB64(f));
-    msg('m-fotos', t('wirdGesendetPunkte'));
-    const r = await senden('fotoSenden', { baustelle: bau(), typ: segVal('f-typ'), pendenzNr: $('f-nr').value.trim(), bereich: $('f-bereich').value.trim(), text: $('f-text').value.trim(), bilder, auftrag: fAuf, material: fMat, materialSonst: fSonst }, { offline: true });
-    fFiles = []; thumbs(); $('f-text').value = ''; $('f-nr').value = ''; segReset('f-auftrag'); matReset(); msg('m-fotos', r.queued ? t('gespeichertWartet') : t('fotosGesendet'), 'ok'); if (!r.queued) laden(); }
-  catch (e) { msg('m-fotos', e.message + ' – Fotos bleiben ausgewählt.', 'err'); }
+  // Jedes Foto einzeln verkleinern und SOFORT auf dem Handy speichern (Warteschlange). Danach wird eins nach dem anderen gesendet.
+  const meta = { baustelle: bau(), typ: segVal('f-typ'), pendenzNr: $('f-nr').value.trim(), bereich: $('f-bereich').value.trim(), text: $('f-text').value.trim(), auftrag: fAuf, material: fMat, materialSonst: fSonst,
+    gruppe: 'g' + Date.now() + Math.random().toString(36).slice(2, 6), anzahl: fFiles.length };
+  const liste = fFiles.slice(), n = liste.length; let ok = 0, fehler = 0;
+  try {
+    for (let i = 0; i < n; i++) {
+      msg('m-fotos', t('fotoSpeichern') + ' ' + (i + 1) + ' / ' + n + ' …');
+      try { const b64 = await jpegB64(liste[i]);
+        await IDB.add({ action: 'fotoSenden', data: Object.assign({ ts: Date.now(), teil: i, bilder: [b64] }, meta), am: Date.now(), wer: sess && (sess.id || 'chef') }); ok++;
+        fFiles = fFiles.filter(f => f !== liste[i]); }
+      catch (e) { fehler++; }
+      if (i % 10 === 9) await new Promise(r => setTimeout(r, 0)); // Handy kurz atmen lassen
+    }
+    thumbs(); if (!fFiles.length) { $('f-text').value = ''; $('f-nr').value = ''; segReset('f-auftrag'); matReset(); }
+    msg('m-fotos', '✓ ' + ok + ' ' + t('fotosGespeichert') + (fehler ? ' – ' + fehler + ' ' + t('fotosNichtLesbar') : ''), fehler ? 'err' : 'ok');
+    await qLoad(); flush();
+  } catch (e) { msg('m-fotos', e.message + ' – ' + ok + ' ' + t('fotosGespeichert'), 'err'); await qLoad(); flush(); }
   $('f-send').disabled = false;
 };
 function imgs(list, cls) { const g = el('div', 'imgs' + (cls ? ' ' + cls : '')); (list || []).forEach(f => { const b = el('button', 'pic'); b.type = 'button'; b.setAttribute('aria-label', 'Foto gross anzeigen'); const im = el('img'); im.src = thumb(f.id); im.alt = 'Foto'; im.loading = 'lazy'; b.append(im); b.onclick = () => { $('lb-img').src = thumb(f.id); $('lb').hidden = false; }; g.append(b); }); return g; }
@@ -1040,6 +1073,7 @@ function renderAuf() {
     if (p.fotos.length) { const g = el('div', 'thumbs'); p.fotos.slice(0, 8).forEach(f => { const im = el('img'); im.src = 'data:image/jpeg;base64,' + f.klein; im.alt = 'Foto'; g.append(im); }); if (p.fotos.length > 8) g.append(el('span', 'meta', '+' + (p.fotos.length - 8))); it.append(g); }
     const mt = auMatText(p); if (mt) it.append(el('div', 'matinfo', 'Material: ' + mt));
     const et = auErschText(p); if (et) it.append(el('div', 'matinfo', 'Erschwernisse: ' + et));
+    if (p.zeit) it.append(el('div', 'matinfo', 'Zeitaufwand: ' + p.zeit + ' Std.'));
     if (p.bemerkung) it.append(el('div', 'txt', p.bemerkung));
     if (!p.gesendet && AUF.status !== 'sendet') { const row = el('div', 'row'); const b1 = el('button', 'ghost small', '✏️ Bearbeiten'); b1.type = 'button'; b1.onclick = () => posOeffnen(p);
       const b2 = el('button', 'ghost small', '🗑 Löschen'); b2.type = 'button'; b2.onclick = async () => { if (!confirm('Pos. ' + p.nr + ' mit ' + p.fotos.length + ' Fotos löschen?')) return;
@@ -1047,6 +1081,15 @@ function renderAuf() {
       row.append(b1, b2); it.append(row); }
     L.append(it); });
 }
+// Objekt gewählt → Adresse + Kunde der Baustelle automatisch einfüllen (nur leere oder selbst eingefüllte Felder überschreiben)
+function auObjektFuellen() {
+  const b = (D && D.baustellen || []).find(x => x.name.toLowerCase() === $('au-objekt').value.trim().toLowerCase());
+  [['au-adresse', b && b.adresse], ['au-kunde', b && b.auftraggeber]].forEach(([id, v]) => { const f = $(id);
+    if (!f.value.trim() || f.dataset.auto === '1') { f.value = v || ''; f.dataset.auto = v ? '1' : ''; } });
+  msg('m-au-start', b && !b.adresse ? 'Hinweis: Bei «' + b.name + '» ist noch keine Adresse hinterlegt – bitte hier eintragen.' : '');
+}
+$('au-objekt').addEventListener('input', auObjektFuellen); $('au-objekt').addEventListener('change', auObjektFuellen);
+['au-adresse', 'au-kunde'].forEach(id => $(id).addEventListener('input', () => { $(id).dataset.auto = ''; }));
 $('au-go').onclick = async () => {
   const typ = segVal('au-typ'), objekt = $('au-objekt').value.trim(); let adresse = $('au-adresse').value.trim(); const kunde = $('au-kunde').value.trim();
   if (!typ) { msg('m-au-start', 'Art wählen: Offerte oder Regie-Kostendach.', 'err'); return; }
@@ -1067,7 +1110,7 @@ function posOeffnen(p, wiederherstellen) {
   const d = p || { id: 'p' + Date.now(), bereich: '', bemerkung: '', material: [], materialSonst: '', ersch: {}, erschSonst: '', fotos: [] };
   auFotos = (d.fotos || []).slice(); $('au-pos').dataset.pid = d.id; $('au-pos').dataset.nr = d.nr || '';
   $('au-pos-titel').textContent = p && !wiederherstellen ? 'Pos. ' + p.nr + ' bearbeiten' : (wiederherstellen && d.nr ? 'Pos. ' + d.nr + ' bearbeiten' : 'Neue Position (Pos. ' + (AUF.positionen.reduce((m, x) => Math.max(m, x.nr), AUF.startNr || 0) + 1) + ')');
-  $('au-bereich').value = d.bereich || ''; $('au-matsonst').value = d.materialSonst || ''; $('au-erschsonst').value = d.erschSonst || ''; $('au-bem').value = d.bemerkung || '';
+  $('au-bereich').value = d.bereich || ''; $('au-matsonst').value = d.materialSonst || ''; $('au-erschsonst').value = d.erschSonst || ''; $('au-bem').value = d.bemerkung || ''; $('au-zeit').value = d.zeit || '';
   const M = $('au-mat'); M.innerHTML = '';
   AUF_MAT.forEach(([id, name, eh]) => { const vor = (d.material || []).find(m => m.id === id); const row = el('div', 'matrow'); const lb = el('label'); const cb = el('input'); cb.type = 'checkbox'; cb.dataset.m = id; cb.checked = !!vor; lb.append(cb, document.createTextNode(name));
     const q = el('input', 'mq'); q.inputMode = 'decimal'; q.dataset.mq = id; q.maxLength = 9; q.placeholder = 'Menge ' + eh; q.value = vor ? vor.menge || '' : ''; q.hidden = !vor; q.setAttribute('aria-label', 'Menge ' + name);
@@ -1079,26 +1122,31 @@ function posOeffnen(p, wiederherstellen) {
 function posSammeln() {
   const material = [...$('au-mat').querySelectorAll('input[type=checkbox]')].filter(c => c.checked).map(c => ({ id: c.dataset.m, menge: $('au-mat').querySelector('[data-mq="' + c.dataset.m + '"]').value.trim() }));
   const ersch = {}; $('au-ersch').querySelectorAll('input[type=checkbox]').forEach(c => { if (c.checked) ersch[c.dataset.e] = true; });
-  return { id: $('au-pos').dataset.pid, nr: Number($('au-pos').dataset.nr) || 0, bereich: $('au-bereich').value.trim(), bemerkung: $('au-bem').value.trim(), material, materialSonst: $('au-matsonst').value.trim(), ersch, erschSonst: $('au-erschsonst').value.trim(), fotos: auFotos.slice() };
+  return { id: $('au-pos').dataset.pid, nr: Number($('au-pos').dataset.nr) || 0, bereich: $('au-bereich').value.trim(), bemerkung: $('au-bem').value.trim(), zeit: $('au-zeit').value.trim(), material, materialSonst: $('au-matsonst').value.trim(), ersch, erschSonst: $('au-erschsonst').value.trim(), fotos: auFotos.slice() };
 }
 // Zwischenspeichern der offenen Position (falls Handy sperrt / App geschlossen wird)
 function posZwischen() { if (!AUF || $('au-pos').hidden) return; clearTimeout(auTimer); auTimer = setTimeout(async () => { if (!AUF || $('au-pos').hidden) return; AUF.offenePos = posSammeln(); try { await aufSpeichern(); } catch (e) {} }, 600); }
-['au-bereich', 'au-matsonst', 'au-erschsonst', 'au-bem'].forEach(i => $(i).addEventListener('input', posZwischen));
+['au-bereich', 'au-matsonst', 'au-erschsonst', 'au-bem', 'au-zeit'].forEach(i => $(i).addEventListener('input', posZwischen));
 function auThumbs() { const T = $('au-thumbs'); T.innerHTML = ''; auFotos.forEach((f, i) => { const w = el('div'); const im = el('img'); im.src = 'data:image/jpeg;base64,' + f.klein; im.alt = 'Foto'; const b = el('button', '', '×'); b.type = 'button'; b.setAttribute('aria-label', 'Foto entfernen');
-  b.onclick = () => { if (confirm('Foto entfernen?')) { auFotos.splice(i, 1); auThumbs(); posZwischen(); } }; w.append(im, b); T.append(w); });
+  b.onclick = () => { if (confirm('Foto entfernen?')) { const weg = auFotos.splice(i, 1)[0]; if (weg && weg.id && !AUF.positionen.some(p => p.fotos.some(x => x.id === weg.id))) IDB.bildDel(weg.id).catch(() => {}); auThumbs(); posZwischen(); } }; w.append(im, b); T.append(w); });
   T.append(el('span', 'meta', auFotos.length + ' Foto' + (auFotos.length === 1 ? '' : 's'))); }
 $('au-files').onchange = async e => { const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
   if (auFotos.length + files.length > 40) { msg('m-au-pos', 'Höchstens 40 Fotos pro Position – bitte eine weitere Position anlegen.', 'err'); return; }
   let n = 0; for (const f of files) { msg('m-au-pos', 'Foto ' + (++n) + ' von ' + files.length + ' wird vorbereitet …');
-    try { auFotos.push({ gross: await bildB64(f, 1600, 0.8), klein: await bildB64(f, 480, 0.7) }); } catch (er) { msg('m-au-pos', er.message, 'err'); } }
+    try { const id = 'b' + Date.now() + Math.random().toString(36).slice(2, 7);
+      await IDB.bildPut({ id, gross: await bildB64(f, 1600, 0.8) });          // sofort auf dem Handy gespeichert
+      auFotos.push({ id, klein: await bildB64(f, 480, 0.7) }); if (n % 5 === 0) posZwischen(); } catch (er) { msg('m-au-pos', er.message, 'err'); } }
   msg('m-au-pos', files.length + ' Foto(s) hinzugefügt.', 'ok'); auThumbs(); posZwischen(); };
 $('au-neu').onclick = () => posOeffnen(null);
 $('au-abbr').onclick = async () => { const p = posSammeln(); if ((p.fotos.length || p.bereich || p.material.length || p.bemerkung) && !auEdit && !confirm('Position verwerfen? Fotos und Eingaben dieser Position gehen verloren.')) return;
+  const gespeichert = new Set(AUF.positionen.flatMap(x => x.fotos.map(f => f.id)));
+  for (const f of p.fotos) if (f.id && !gespeichert.has(f.id)) await IDB.bildDel(f.id).catch(() => {});
   delete AUF.offenePos; await aufSpeichern(); $('au-pos').hidden = true; $('au-neu').hidden = false; auEdit = null; renderAuf(); };
 $('au-pos-save').onclick = async () => {
   const p = posSammeln();
-  if (!p.fotos.length && !p.bereich && !p.material.length && !p.materialSonst && !p.bemerkung) { msg('m-au-pos', 'Bitte mindestens Foto, Bereich, Material oder Bemerkung erfassen.', 'err'); return; }
+  if (!p.fotos.length && !p.bereich && !p.material.length && !p.materialSonst && !p.bemerkung && !p.zeit) { msg('m-au-pos', 'Bitte mindestens Foto, Bereich, Material oder Bemerkung erfassen.', 'err'); return; }
   if (p.material.some(m => m.menge && !/^\d{1,6}([.,]\d{1,2})?$/.test(m.menge))) { msg('m-au-pos', 'Menge bitte nur als Zahl (z. B. 12 oder 2,5).', 'err'); return; }
+  if (p.zeit && !/^\d{1,4}([.,]\d{1,2})?$/.test(p.zeit)) { msg('m-au-pos', 'Zeitaufwand bitte als Zahl in Stunden (z. B. 2,5) – oder leer lassen.', 'err'); return; }
   const alt = AUF.positionen.find(x => x.id === p.id);
   if (alt) { p.nr = alt.nr; AUF.positionen[AUF.positionen.indexOf(alt)] = p; } else { p.nr = AUF.positionen.reduce((m, x) => Math.max(m, x.nr), AUF.startNr || 0) + 1; AUF.positionen.push(p); }
   delete AUF.offenePos; AUF.status = 'entwurf';
@@ -1111,20 +1159,22 @@ async function aufSenden(auto) {
   if (!$('au-pos').hidden) { msg('m-au', 'Bitte zuerst die offene Position speichern oder abbrechen.', 'err'); return; }
   if (!AUF.positionen.length) { msg('m-au', 'Noch keine Position erfasst.', 'err'); return; }
   const n = AUF.positionen.length, nf = AUF.positionen.reduce((s, p) => s + p.fotos.length, 0);
-  if (!auto && !confirm('Aufnahme «' + AUF.objekt + '» mit ' + n + ' Positionen und ' + nf + ' Fotos absenden?\n\nDu bekommst die Aufstellung (PDF mit Fotos + Excel) per E-Mail.')) return;
+  if (!auto && !confirm('Aufnahme «' + AUF.objekt + '» abschliessen und an Jehon senden?\n\n' + n + ' Positionen, ' + nf + ' Fotos → E-Mail an j.avdiu@asn-isolierungen.ch (PDF mit Fotos + Excel).')) return;
   aufSendet = true; AUF.status = 'sendet'; await aufSpeichern(); renderAuf();
   const meta = { id: AUF.id, typ: AUF.typ, objekt: AUF.objekt, adresse: AUF.adresse, kunde: AUF.kunde, erstellt: AUF.erstellt };
   try {
     for (let i = 0; i < n; i++) { const p = AUF.positionen[i]; if (p.gesendet) continue;
       msg('m-au', '⏳ Pos. ' + p.nr + ' (' + (i + 1) + ' von ' + n + ', ' + p.fotos.length + ' Fotos) wird gesendet …');
-      await api('aufnahmePosition', { aufnahme: meta, position: { id: p.id, nr: p.nr, bereich: p.bereich, bemerkung: p.bemerkung, material: p.material, materialSonst: p.materialSonst, ersch: p.ersch, erschSonst: p.erschSonst, fotos: p.fotos } }, 240000);
+      const fotos = []; for (const f of p.fotos) { let g = f.gross; if (!g && f.id) { const r = await IDB.bildGet(f.id); g = r && r.gross; } if (g) fotos.push({ gross: g, klein: f.klein }); }
+      await api('aufnahmePosition', { aufnahme: meta, position: { id: p.id, nr: p.nr, bereich: p.bereich, bemerkung: p.bemerkung, zeit: p.zeit || '', material: p.material, materialSonst: p.materialSonst, ersch: p.ersch, erschSonst: p.erschSonst, fotos } }, 240000);
       p.gesendet = true; await aufSpeichern(); renderAuf(); }
     msg('m-au', '⏳ PDF und Excel werden erstellt und per E-Mail gesendet … (bei vielen Fotos 1–3 Minuten, App offen lassen)');
     const j = await api('aufnahmeAbschliessen', { aufnahme: meta, nrs: AUF.positionen.map(p => p.nr) }, 360000);
     const om = lsGet('asn-auf-objekte', {}); om[AUF.typ + '|' + AUF.objekt.toLowerCase()] = { id: AUF.id, erstellt: AUF.erstellt, letzteNr: AUF.positionen.reduce((m, x) => Math.max(m, x.nr), AUF.startNr || 0), anzahl: j.positionen, adresse: AUF.adresse, kunde: AUF.kunde }; lsSet('asn-auf-objekte', om);
     const hist = lsGet('asn-auf-hist', []); hist.unshift({ objekt: AUF.objekt, typ: AUF.typ, am: Date.now(), pos: j.positionen, fotos: j.fotos }); lsSet('asn-auf-hist', hist.slice(0, 10));
+    for (const p of AUF.positionen) for (const f of p.fotos) if (f.id) await IDB.bildDel(f.id).catch(() => {});
     await IDB.aufDel(AUF.id); const o = AUF.objekt; AUF = null; renderAuf();
-    msg('m-au-start', '✓ Gesendet: «' + o + '» – ' + j.positionen + ' Positionen, ' + j.fotos + ' Fotos. Die E-Mail mit PDF und Excel ist unterwegs zu dir.', 'ok');
+    msg('m-au-start', '✓ Abgeschlossen und gesendet: «' + o + '» – ' + j.positionen + ' Positionen, ' + j.fotos + ' Fotos. Die E-Mail an j.avdiu@asn-isolierungen.ch ist unterwegs (PDF mit Fotos + Excel).', 'ok');
   } catch (e) {
     if (e instanceof NetzFehler) msg('m-au', '📶 Kein Empfang / Verbindung unterbrochen – alles bleibt auf dem Handy. Bei Empfang wird automatisch weitergesendet (oder nochmals «Absenden» tippen).', 'err');
     else { AUF.status = 'entwurf'; await aufSpeichern(); msg('m-au', 'Fehler: ' + e.message + ' – die Aufnahme bleibt gespeichert. Bitte nochmals «Absenden» tippen.', 'err'); }
@@ -1132,6 +1182,7 @@ async function aufSenden(auto) {
   } finally { aufSendet = false; }
 }
 $('au-verwerfen').onclick = async () => { if (!AUF) return; if (!confirm('Ganze Aufnahme «' + AUF.objekt + '» mit allen Positionen und Fotos vom Handy löschen?\n\nDas kann nicht rückgängig gemacht werden.')) return;
+  for (const f of AUF.positionen.flatMap(p => p.fotos).concat(auFotos)) if (f.id) await IDB.bildDel(f.id).catch(() => {});
   await IDB.aufDel(AUF.id); AUF = null; $('au-pos').hidden = true; $('au-neu').hidden = false; renderAuf(); };
 
 /* ====== Anzeige ====== */
