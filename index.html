@@ -115,6 +115,10 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
 .sn-t th{text-align:left;padding:7px 6px;font-weight:700;vertical-align:bottom;border-top:1.5px solid #14212e;border-bottom:1.5px solid #14212e}
 .sn-t td{padding:7px 6px;border-bottom:1px solid #dde3ea;vertical-align:top}
 .sn-t .n{text-align:right;white-space:nowrap}
+.sn-t td.rg{font-weight:700;color:#b45f00}
+.sn-t tr.gelb td{background:#fff3b0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.item.gelb{background:#fff6c7;border-color:#e3b800}
+.auf{font-size:13px;font-weight:700;color:var(--muted,#5d6b79)}.auf.regie{color:#b45f00}
 .sn-t tr.sum td{font-weight:700;border-top:1.5px solid #14212e;border-bottom:1.5px solid #14212e}
 .or{color:#c0560b}.bl{color:#1d3fa8;font-weight:700}.rd{color:#b42318;font-weight:700}
 .sn-sig{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:70px;font-size:11px;color:#5d6b79}
@@ -169,6 +173,8 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
         <div class="card" id="stempel">
           <div class="stp-date" id="s-date"></div>
           <div id="s-state"></div>
+          <div id="s-auftrag-w"><span class="lab" data-i18n="auftrag">Auftrag</span>
+            <div class="seg" id="s-auftrag"><button type="button" class="ghost small" data-v="normal" aria-pressed="false" data-i18n="auftragNormal">Normal</button><button type="button" class="ghost small" data-v="regie" aria-pressed="false" data-i18n="auftragRegie">Regie</button></div></div>
           <button class="big go" type="button" id="s-start" data-i18n="start">▶ Arbeitsbeginn</button>
           <div id="s-ende" hidden>
             <span class="lab" data-i18n="pauseHeute">Pause heute</span>
@@ -256,10 +262,12 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
           <div class="grid2"><div><label for="n-status">Tag</label><select id="n-status"><option value="arbeit">Arbeit</option><option value="frei">Frei</option><option value="krank">Krank</option><option value="ferien">Ferien</option><option value="unfall">Unfall</option><option value="feiertag">Feiertag</option></select></div><div><label for="n-bau">Baustelle</label><select id="n-bau"></select></div></div>
           <div id="n-arb"><div class="grid2"><div><label for="n-von">Von</label><input type="time" id="n-von"></div><div><label for="n-bis">Bis</label><input type="time" id="n-bis"></div></div>
             <div style="margin-top:10px"><span class="lab">Pause</span><div class="seg" id="n-pause"><button type="button" class="ghost small" data-v="0" aria-pressed="false">Keine</button><button type="button" class="ghost small" data-v="30" aria-pressed="false">30 Min.</button><button type="button" class="ghost small" data-v="60" aria-pressed="false">1 Std.</button><button type="button" class="ghost small" data-v="90" aria-pressed="false">1,5 Std.</button></div></div>
+            <div style="margin-top:10px"><span class="lab">Auftrag</span><div class="seg" id="n-auftrag"><button type="button" class="ghost small" data-v="normal" aria-pressed="false">Normal</button><button type="button" class="ghost small" data-v="regie" aria-pressed="false">Regie</button></div></div>
             <div style="margin-top:10px"><label for="n-text">Tätigkeit</label><input id="n-text"></div>
             <details id="n-zwei" style="margin-top:10px"><summary class="lab" style="cursor:pointer">2. Baustelle am gleichen Tag (falls)</summary>
               <div style="margin-top:8px"><label for="n-bau2">2. Baustelle</label><select id="n-bau2"></select></div>
               <div class="grid2" style="margin-top:8px"><div><label for="n-von2">Von</label><input type="time" id="n-von2"></div><div><label for="n-bis2">Bis</label><input type="time" id="n-bis2"></div></div>
+              <div style="margin-top:8px"><span class="lab">Auftrag 2. Baustelle</span><div class="seg" id="n-auftrag2"><button type="button" class="ghost small" data-v="normal" aria-pressed="false">Normal</button><button type="button" class="ghost small" data-v="regie" aria-pressed="false">Regie</button></div></div>
               <p class="hint">Die Fahrt zwischen den Baustellen rechnet die App (Google Maps, höchstens die Zeit zwischen Ende 1 und Beginn 2).</p></details></div>
           <button class="ghost" type="button" id="n-save">Speichern (wird als «nachgetragen» vermerkt)</button>
           <div class="msg" id="m-nach" role="status"></div>
@@ -490,16 +498,21 @@ function locEl(l, was) {
 }
 
 /* ====== Stempeluhr (Monteur) ====== */
-seg('s-pause');
+seg('s-pause'); seg('s-auftrag');
+// Auftrag Normal/Regie. Hinweis (gelb), wenn nicht «Regie» gewählt, aber die Notiz Regie erwähnt.
+const aufTxt = v => v === 'regie' ? t('auftragRegie') : v === 'normal' ? t('auftragNormal') : '–';
+const REGIE_RX = /regi[ea]|regji/i;
+function regieHinweis(x, a) { return !!(x && x.status === 'arbeit' && (!a || a.auftrag !== 'regie') && REGIE_RX.test((x.arbeit || '') + ' ' + (x.arbeitOriginal || ''))); }
+function tagRegieHinweis(x) { const abs = x.abschnitte && x.abschnitte.length ? x.abschnitte : [{}]; return abs.some(a => regieHinweis(x, a)); }
 function meineTage() {
   const r = (D && D.rapporte || []).slice();
   // wartende Einträge sichtbar machen
   wartend.filter(w => w.wer === (sess && sess.id)).forEach(w => {
     const d = isoD(new Date(w.data.ts)); const id = sess.id + '_' + d; let x = r.find(y => y.id === id);
-    if (w.action === 'stempelStart' && !x) r.push({ id, datum: d, status: 'arbeit', baustelle: w.data.baustelle, von: new Date(w.data.ts).toTimeString().slice(0, 5), bis: '', locStart: locLokal(w.data.loc, w.data.baustelle), _wartet: true });
+    if (w.action === 'stempelStart' && !x) r.push({ id, datum: d, status: 'arbeit', baustelle: w.data.baustelle, von: new Date(w.data.ts).toTimeString().slice(0, 5), bis: '', locStart: locLokal(w.data.loc, w.data.baustelle), abschnitte: [{ baustelle: w.data.baustelle, von: new Date(w.data.ts).toTimeString().slice(0, 5), bis: '', auftrag: w.data.auftrag }], _wartet: true });
     if (w.action === 'stempelEnde') { x = x || r.find(y => y.status === 'arbeit' && !y.bis); if (x) { x.bis = new Date(w.data.ts).toTimeString().slice(0, 5); x.pause = +w.data.pause; x.arbeit = w.data.arbeit; x._wartet = true; x.locEnde = locLokal(w.data.loc, x.baustelle); } }
     if (w.action === 'wechselAbfahrt') { x = x || r.find(y => y.status === 'arbeit' && !y.bis); if (x) { x.unterwegs = { ab: aktBau(x), um: new Date(w.data.ts).toTimeString().slice(0, 5) }; x._wartet = true; } }
-    if (w.action === 'wechselAnkunft') { x = x || r.find(y => y.status === 'arbeit' && !y.bis); if (x) { x.abschnitte = (x.abschnitte || []).concat([{ baustelle: w.data.baustelle, von: new Date(w.data.ts).toTimeString().slice(0, 5), bis: '' }]); x.unterwegs = null; x._wartet = true; } }
+    if (w.action === 'wechselAnkunft') { x = x || r.find(y => y.status === 'arbeit' && !y.bis); if (x) { x.abschnitte = (x.abschnitte || []).concat([{ baustelle: w.data.baustelle, von: new Date(w.data.ts).toTimeString().slice(0, 5), bis: '', auftrag: w.data.auftrag }]); x.unterwegs = null; x._wartet = true; } }
     if (w.action === 'abwesend' && !x) r.push({ id, datum: d, status: w.data.status, _wartet: true });
   });
   return r.sort((a, b) => b.datum.localeCompare(a.datum));
@@ -514,12 +527,13 @@ function renderStempel() {
   const unterwegs = laeuft && x.unterwegs;
   $('s-start').hidden = !!(laeuft || fertig); $('s-abw').hidden = !!(laeuft || fertig);
   $('s-stop').hidden = !laeuft || !!unterwegs; $('s-ende').hidden = !laeuft || !!unterwegs; $('s-wechsel').hidden = !laeuft || !!unterwegs; $('s-unterwegs').hidden = !unterwegs;
+  $('s-auftrag-w').hidden = !(!(laeuft || fertig) || unterwegs);
   if (unterwegs) { const s = $('s-neu'), c = s.value; s.length = 1; (D && D.baustellen || []).filter(b => b.id !== x.unterwegs.ab).sort((a, b) => (a.sort || 99) - (b.sort || 99)).forEach(b => s.append(new Option(b.name, b.id))); s.value = c; }
   $('bs-wrap').hidden = $('t-zeit').hidden ? $('bs-wrap').hidden : !!laeuft;
   if (laeuft) {
     (x.abschnitte && x.abschnitte.length ? x.abschnitte : [{ baustelle: x.baustelle, von: x.von, bis: '' }]).forEach((a, i, all) => {
       const d = el('div', 'running'); if (a.bis) d.append(bName(a.baustelle) + ': ' + a.von + '–' + a.bis);
-      else { d.append(t('laeuftSeit') + ' ', el('b', '', a.von), (x.datum !== today() ? ' (' + dd(x.datum) + ')' : '') + ' · ' + bName(a.baustelle)); } st.append(d);
+      else { d.append(t('laeuftSeit') + ' ', el('b', '', a.von), (x.datum !== today() ? ' (' + dd(x.datum) + ')' : '') + ' · ' + bName(a.baustelle) + (a.auftrag ? ' · ' + aufTxt(a.auftrag) : '')); } st.append(d);
       const l = locEl(a.locStart || (i === 0 ? x.locStart : null), i === 0 ? t('beginn') : t('ankunftWort')); if (l && !a.bis) st.append(l); });
     if (unterwegs) st.append(el('div', 'loc na', t('unterwegsSeit') + ' ' + x.unterwegs.um + ' · ' + bName(x.unterwegs.ab) + ' – ' + t('unterwegsHint')));
   }
@@ -530,9 +544,10 @@ function renderStempel() {
 }
 $('s-start').onclick = async () => {
   if (!bau()) { msg('m-stempel', t('bauZuerst'), 'err'); $('baustelle').focus(); return; }
+  const auf = segVal('s-auftrag'); if (!auf) { msg('m-stempel', t('auftragWaehlen'), 'err'); return; }
   const b = $('s-start'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …');
   const loc = await standort();
-  try { const r = await senden('stempelStart', { baustelle: bau(), loc }, { offline: true });
+  try { const r = await senden('stempelStart', { baustelle: bau(), loc, auftrag: auf }, { offline: true }); segReset('s-auftrag');
     msg('m-stempel', t('beginnGestempelt') + ' ' + (r.queued ? nowHM() + ' – ' + t('gespeichertWartet') : r.j.rapport.von), 'ok');
     if (!r.queued) await laden(); }
   catch (e) { msg('m-stempel', e.message, 'err'); }
@@ -560,8 +575,9 @@ $('s-wechsel').onclick = async () => {
 };
 $('s-ankunft').onclick = async () => {
   const nb = $('s-neu').value; if (!nb) { msg('m-stempel', t('neueWaehlen'), 'err'); $('s-neu').focus(); return; }
+  const auf = segVal('s-auftrag'); if (!auf) { msg('m-stempel', t('auftragWaehlen'), 'err'); return; }
   const b = $('s-ankunft'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …'); const loc = await standort();
-  try { const r = await senden('wechselAnkunft', { baustelle: nb, loc }, { offline: true }); lsSet('asn-bau', nb); $('baustelle').value = nb;
+  try { const r = await senden('wechselAnkunft', { baustelle: nb, loc, auftrag: auf }, { offline: true }); segReset('s-auftrag'); lsSet('asn-bau', nb); $('baustelle').value = nb;
     msg('m-stempel', t('ankunftOk') + ' ' + bName(nb) + (r.queued ? ' – ' + t('gespeichertWartet') : ''), 'ok'); if (!r.queued) await laden(); }
   catch (e) { msg('m-stempel', e.message, 'err'); } b.disabled = false; render();
 };
@@ -575,7 +591,7 @@ function rpTable(x) {
   const ort = s => { s = String(s || '').replace(/^hin |^retour /, ''); return s === 'Wohnort' ? t('wohnort') : s === 'Lager Oftringen' ? t('lager') : s; };
   if (x.status !== 'arbeit') { add(tg(x.status), t('keinWeg')); return tb; }
   const abs = x.abschnitte && x.abschnitte.length ? x.abschnitte : [{ baustelle: x.baustelle, von: x.von, bis: x.bis }];
-  abs.forEach(a => add(t('arbeitszeit') + ' ' + (abs.length > 1 ? bName(a.baustelle) + ' ' : '') + a.von + '–' + (a.bis || '…'), std(dauer(a)) + ' h'));
+  abs.forEach(a => add(t('arbeitszeit') + ' ' + (abs.length > 1 ? bName(a.baustelle) + ' ' : '') + a.von + '–' + (a.bis || '…') + (a.auftrag ? ' · ' + aufTxt(a.auftrag) : ''), std(dauer(a)) + ' h'));
   add('− ' + t('pause'), mins(x.pause), 'minus'); add(t('arbeitNetto'), std(x.arbeitNetto) + ' h', 'sub');
   if (x.ab === 'FEHLT' || x.fahrt == null) add(t('arbeitsweg'), t('fahrzeitFehlt'));
   else { const ab2 = String(x.ab || '').split(' / '); add(t('wegHin') + ' (' + ort(ab2[0]) + ')', mins(x.hin)); add(t('wegRetour') + ' (' + ort(ab2[1] || ab2[0]) + ')', mins(x.retour)); add(t('wegTotal'), mins(x.fahrt), 'sub'); add('− ' + t('abzugWeg'), mins(-x.abzug), 'minus'); }
@@ -591,6 +607,7 @@ function korrigieren(x) {
   $('n-bau').value = abs[0].baustelle || ''; $('n-von').value = abs[0].von || ''; $('n-bis').value = abs[0].bis || '';
   $('n-bau2').value = abs[1] ? abs[1].baustelle : ''; $('n-von2').value = abs[1] ? abs[1].von : ''; $('n-bis2').value = abs[1] ? abs[1].bis : ''; $('n-zwei').open = !!abs[1];
   if (x.pause != null) setSeg('n-pause', x.pause); $('n-text').value = x.arbeit || '';
+  setSeg('n-auftrag', abs[0].auftrag || ''); setSeg('n-auftrag2', abs[1] ? abs[1].auftrag || '' : '');
   msg('m-nach', 'Eintrag von ' + x.monteurName + ' am ' + dd(x.datum) + ' geladen – ändern und Speichern tippen.', 'ok'); $('n-mon').closest('.card').scrollIntoView({ behavior: 'smooth' });
 }
 function setSeg(id, v) { $(id).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); }
@@ -598,6 +615,8 @@ function tagItem(x, chef) {
   const it = el('div', 'item'); const top = el('div', 'top');
   const chip = x._wartet ? ['c-wartet', t('wirdGesendet')] : x.status !== 'arbeit' ? ['c-abw', tg(x.status)] : !x.bis ? (x.datum < today() ? ['c-offen', t('offen')] : ['c-neu', t('laeuft')]) : ['c-ok', std(x.total) + ' h'];
   top.append(el('div', '', (chef ? (x.monteurName || '') + ' · ' : '') + wdD(x.datum) + (x.baustelle ? ' · ' + bName(x.baustelle) : '')), el('span', 'chip ' + chip[0], chip[1])); it.append(top);
+  if (x.status === 'arbeit') { const aufs = [...new Set((x.abschnitte || []).map(a => a.auftrag).filter(Boolean))]; if (aufs.length) it.append(el('div', 'auf' + (aufs.includes('regie') ? ' regie' : ''), t('auftrag') + ': ' + aufs.map(aufTxt).join(' + '))); }
+  if (chef && isChef() && tagRegieHinweis(x)) { it.classList.add('gelb'); it.append(el('div', 'meta red', '⚠ Auftrag «Normal» gewählt, aber in der Notiz steht «Regie» – bitte prüfen')); }
   if (x.status === 'arbeit' && !x.bis) it.append(x.datum < today() ? el('div', 'loc out', t('feierabendFehlt') + ' (' + x.von + ')') : el('div', 'loc na', t('laeuftSeit') + ' ' + x.von));
   else if (x.status === 'arbeit' && x.total != null) { it.append(rpTable(x)); if (x.arbeit) { it.append(el('div', 'txt', (!isChef() && x.arbeitOriginal) || x.arbeit)); } }
   const absL = x.abschnitte && x.abschnitte.length > 1 ? x.abschnitte : null;
@@ -711,11 +730,12 @@ function chefRap() { if (!D) return []; const a = $('c-von').value, b = $('c-bis
 function renderChef() {
   if (!isChef() || !D) return;
   const r = chefRap().sort((x, y) => (x.monteurName || '').localeCompare(y.monteurName || '') || x.datum.localeCompare(y.datum));
-  const t = $('c-sum'); t.innerHTML = ''; const hd = el('tr'); ['Monteur', 'Tage', 'Arbeitszeit', 'Weg H+R', 'Abzug', 'Zwischenf.', 'Abwesend', 'Offen', 'Total'].forEach(h => hd.append(el('th', '', h))); t.append(hd);
-  const by = {}; r.forEach(x => { const k = x.monteurName; by[k] = by[k] || { d: 0, a: 0, f: 0, g: 0, z: 0, t: 0, ab: 0, of: 0 }; const o = by[k];
-    if (x.status !== 'arbeit') o.ab++; else if (!x.bis) o.of++; else { o.d++; o.a += x.arbeitNetto || 0; o.f += x.fahrt || 0; o.g += x.abzug || 0; o.z += x.zwischen || 0; o.t += x.total || 0; } });
-  Object.keys(by).sort().forEach(k => { const o = by[k]; const tr = el('tr'); [k, o.d, std(o.a) + ' Std.', mins(o.f), mins(-o.g), mins(o.z), o.ab, o.of, std(o.t) + ' Std.'].forEach(v => tr.append(el('td', '', String(v)))); t.append(tr); });
-  if (!r.length) { const tr = el('tr'); const td = el('td', '', 'Keine Einträge in diesem Zeitraum.'); td.colSpan = 9; tr.append(td); t.append(tr); }
+  const t = $('c-sum'); t.innerHTML = ''; const hd = el('tr'); ['Monteur', 'Tage', 'Arbeitszeit', 'Weg H+R', 'Abzug', 'Zwischenf.', 'Abwesend', 'Offen', 'davon Regie', 'Total'].forEach(h => hd.append(el('th', '', h))); t.append(hd);
+  const by = {}; r.forEach(x => { const k = x.monteurName; by[k] = by[k] || { d: 0, a: 0, f: 0, g: 0, z: 0, t: 0, ab: 0, of: 0, rg: 0, gelb: 0 }; const o = by[k];
+    if (x.status !== 'arbeit') o.ab++; else if (!x.bis) o.of++; else { o.d++; o.a += x.arbeitNetto || 0; o.f += x.fahrt || 0; o.g += x.abzug || 0; o.z += x.zwischen || 0; o.t += x.total || 0;
+      tagZeilen(x).forEach(z => { if (z.a.auftrag === 'regie') o.rg += z.total; }); if (tagRegieHinweis(x)) o.gelb++; } });
+  Object.keys(by).sort().forEach(k => { const o = by[k]; const tr = el('tr'); if (o.gelb) tr.style.background = '#fff3b0'; [k + (o.gelb ? ' ⚠' : ''), o.d, std(o.a) + ' Std.', mins(o.f), mins(-o.g), mins(o.z), o.ab, o.of, std(o.rg) + ' Std.', std(o.t) + ' Std.'].forEach(v => tr.append(el('td', '', String(v)))); t.append(tr); });
+  if (!r.length) { const tr = el('tr'); const td = el('td', '', 'Keine Einträge in diesem Zeitraum.'); td.colSpan = 10; tr.append(td); t.append(tr); }
   const L = $('c-rap'); L.innerHTML = ''; r.slice().sort((a, b) => b.datum.localeCompare(a.datum)).slice(0, 80).forEach(x => L.append(tagItem(x, true)));
   const mons = (D.monteure || []).slice().sort((a, b) => a.name.localeCompare(b.name)), baus = (D.baustellen || []).slice().sort((a, b) => (a.sort || 99) - (b.sort || 99));
   [['sn-m', mons, 'Alle'], ['n-mon', mons, null], ['sn-b', baus, 'Alle'], ['n-bau', baus, null], ['n-bau2', baus, '– keine –']].forEach(([id, list, alle]) => { const s = $(id), c = s.value; s.length = 0; if (alle) s.append(new Option(alle, '')); list.forEach(x => s.append(new Option(x.name, x.id))); if ([...s.options].some(o => o.value === c)) s.value = c; });
@@ -740,11 +760,12 @@ $('fz-neu').onclick = async () => { msg('m-fz', 'Google Maps rechnet … (kann 1
 $('nm-save').onclick = () => chefAkt('monteurNeu', { name: $('nm-name').value.trim(), pin: $('nm-pin').value.trim(), wohnort: $('nm-wohn').value.trim() }, 'm-mont');
 $('nb-save').onclick = () => chefAkt('baustelleSetzen', { name: $('nb-name').value.trim(), adresse: $('nb-adr').value.trim(), auftraggeber: $('nb-ag').value.trim() }, 'm-bau');
 $('c-pinsave').onclick = () => { const p = $('c-newpin').value.trim(); if (!/^\d{4}$/.test(p)) { msg('m-cpin', '4 Ziffern eingeben.', 'err'); return; } chefAkt('chefPin', { pin: p }, 'm-cpin'); $('c-newpin').value = ''; };
-seg('n-pause'); $('n-datum').value = today();
+seg('n-pause'); seg('n-auftrag'); seg('n-auftrag2'); $('n-datum').value = today();
 $('n-status').onchange = () => { $('n-arb').hidden = $('n-status').value !== 'arbeit'; };
 $('n-save').onclick = () => { const st = $('n-status').value, d = { monteur: $('n-mon').value, datum: $('n-datum').value, status: st };
-  if (st === 'arbeit') { Object.assign(d, { baustelle: $('n-bau').value, von: $('n-von').value, bis: $('n-bis').value, pause: segVal('n-pause') == null ? null : +segVal('n-pause'), arbeit: $('n-text').value.trim() });
-    if ($('n-bau2').value) { if (!$('n-von2').value || !$('n-bis2').value) { msg('m-nach', '2. Baustelle: Von/Bis eingeben.', 'err'); return; } Object.assign(d, { baustelle2: $('n-bau2').value, von2: $('n-von2').value, bis2: $('n-bis2').value }); } if (d.pause == null) { msg('m-nach', 'Pause wählen.', 'err'); return; } if (!d.von || !d.bis) { msg('m-nach', 'Von/Bis eingeben.', 'err'); return; } }
+  if (st === 'arbeit') { Object.assign(d, { baustelle: $('n-bau').value, von: $('n-von').value, bis: $('n-bis').value, pause: segVal('n-pause') == null ? null : +segVal('n-pause'), arbeit: $('n-text').value.trim(), auftrag: segVal('n-auftrag') });
+    if (!d.auftrag) { msg('m-nach', 'Auftrag wählen: Normal oder Regie.', 'err'); return; }
+    if ($('n-bau2').value) { if (!$('n-von2').value || !$('n-bis2').value) { msg('m-nach', '2. Baustelle: Von/Bis eingeben.', 'err'); return; } if (!segVal('n-auftrag2')) { msg('m-nach', '2. Baustelle: Auftrag Normal oder Regie wählen.', 'err'); return; } Object.assign(d, { baustelle2: $('n-bau2').value, von2: $('n-von2').value, bis2: $('n-bis2').value, auftrag2: segVal('n-auftrag2') }); } if (d.pause == null) { msg('m-nach', 'Pause wählen.', 'err'); return; } if (!d.von || !d.bis) { msg('m-nach', 'Von/Bis eingeben.', 'err'); return; } }
   if (!confirm('Eintrag für ' + $('n-mon').selectedOptions[0].text + ' am ' + dd(d.datum) + ' speichern? Wird als «nachgetragen» vermerkt.')) return; chefAkt('nachtragen', d, 'm-nach'); };
 
 /* ====== Stundennachweis (druckfreundlich) ====== */
@@ -778,22 +799,22 @@ $('sn-open').onclick = () => {
   const mName = mf ? $('sn-m').selectedOptions[0].text : '';
   const titel = (k1 && k1 === k2 ? 'KW ' + k1 + ': ' : '') + dd(a) + ' bis ' + dd(b) + (mf ? ' • Mitarbeiter: ' + mName : '') + (bf ? ' • Baustelle: ' + bName(bf) : '');
   P.append(el('div', 'sn-title', titel));
-  const S = { p: 0, w: 0, g: 0, z: 0, a: 0, t: 0 }; zeilen.forEach(z => { S.p += z.pause; S.w += z.weg || 0; S.g += z.abzug || 0; S.z += z.zw || 0; S.a += z.arbeit; S.t += z.total; });
+  const S = { p: 0, w: 0, g: 0, z: 0, a: 0, t: 0, r: 0 }; zeilen.forEach(z => { S.p += z.pause; S.w += z.weg || 0; S.g += z.abzug || 0; S.z += z.zw || 0; S.a += z.arbeit; S.t += z.total; if (z.a.auftrag === 'regie') S.r += z.total; });
   SN = { zeilen, S, titel, datei: ('Stundennachweis ' + dd(a) + ' bis ' + dd(b) + (mName ? ' ' + mName : '') + (bf ? ' ' + bName(bf) : '')).replace(/[\\/:*?"<>|]/g, '-').trim() };
-  const bx = el('div', 'sn-boxes'); bx.style.gridTemplateColumns = 'repeat(7,1fr)';
-  [['Anzahl Einträge', zeilen.length + ' Datensätze'], ['Gesamt-Pause', S.p + ' Min. (' + std(S.p) + ' h)'], ['Arbeitsweg total', S.w + ' Min. (' + std(S.w) + ' h)'], ['Abzug Weg (−30 Min.)', (S.g ? '−' : '') + S.g + ' Min. (' + std(S.g) + ' h)'], ['Zwischenfahrten', S.z + ' Min. (' + std(S.z) + ' h)'], ['Arbeitszeit netto', std(S.a) + ' Std.'], ['Total', std(S.t) + ' Std.']]
-    .forEach(([kk, v], i) => { const dv = el('div'); dv.append(el('span', '', kk), el('b', i === 3 ? 'or' : i === 6 ? 'bl' : '', v)); bx.append(dv); }); P.append(bx);
+  const bx = el('div', 'sn-boxes'); bx.style.gridTemplateColumns = 'repeat(8,1fr)';
+  [['Anzahl Einträge', zeilen.length + ' Datensätze'], ['Gesamt-Pause', S.p + ' Min. (' + std(S.p) + ' h)'], ['Arbeitsweg total', S.w + ' Min. (' + std(S.w) + ' h)'], ['Abzug Weg (−30 Min.)', (S.g ? '−' : '') + S.g + ' Min. (' + std(S.g) + ' h)'], ['Zwischenfahrten', S.z + ' Min. (' + std(S.z) + ' h)'], ['Arbeitszeit netto', std(S.a) + ' Std.'], ['Davon Regie (Total)', std(S.r) + ' Std.'], ['Total', std(S.t) + ' Std.']]
+    .forEach(([kk, v], i) => { const dv = el('div'); dv.append(el('span', '', kk), el('b', i === 3 ? 'or' : i === 7 ? 'bl' : '', v)); bx.append(dv); }); P.append(bx);
   const t = el('table', 'sn-t'); const hr = el('tr');
-  [['Datum'], ['Mitarbeiter'], ['Auftraggeber'], ['Arbeitsort'], ['Zeit'], ['Pause', 'n'], ['Arbeitsweg (Hin- und Rückfahrt)', 'n'], ['Abzug (−30m)', 'n'], ['Zwischen­fahrt', 'n'], ['Arbeitszeit', 'n'], ['Notiz / Tätigkeiten'], ['Status'], ['Total', 'n']].forEach(([h, c]) => hr.append(el('th', c || '', h))); t.append(hr);
-  zeilen.forEach(z => { const x = z.x, bs = (D.baustellen || []).find(q => q.id === z.a.baustelle) || {}; const tr = el('tr'); const mt = el('td'); mt.append(el('strong', '', x.monteurName));
+  [['Datum'], ['Mitarbeiter'], ['Auftraggeber'], ['Arbeitsort'], ['Auftrag'], ['Zeit'], ['Pause', 'n'], ['Arbeitsweg (Hin- und Rückfahrt)', 'n'], ['Abzug (−30m)', 'n'], ['Zwischen­fahrt', 'n'], ['Arbeitszeit', 'n'], ['Notiz / Tätigkeiten'], ['Status'], ['Total', 'n']].forEach(([h, c]) => hr.append(el('th', c || '', h))); t.append(hr);
+  zeilen.forEach(z => { const x = z.x, bs = (D.baustellen || []).find(q => q.id === z.a.baustelle) || {}; const tr = el('tr', regieHinweis(x, z.a) ? 'gelb' : ''); const mt = el('td'); mt.append(el('strong', '', x.monteurName));
     const st = el('td'); snStatus(z).forEach(([s, rot]) => st.append(el('div', rot ? 'rd' : '', s)));
     const zwTxt = z.i === 0 ? '' : (z.zw == null ? 'fehlt' : z.zw + ' min');
-    tr.append(el('td', '', dd(x.datum)), mt, el('td', '', bs.auftraggeber || '–'), el('td', '', bs.adresse || bs.name || ''), el('td', '', z.a.von + '–' + z.a.bis),
+    tr.append(el('td', '', dd(x.datum)), mt, el('td', '', bs.auftraggeber || '–'), el('td', '', bs.adresse || bs.name || ''), el('td', z.a.auftrag === 'regie' ? 'rg' : '', aufTxt(z.a.auftrag)), el('td', '', z.a.von + '–' + z.a.bis),
       el('td', 'n', z.pause + ' min'), el('td', 'n', z.weg == null ? 'fehlt' : z.weg + ' min'), el('td', 'n or', z.abzug ? '−' + z.abzug + ' min' : '0 min'), el('td', 'n', zwTxt),
       el('td', 'n', std(z.arbeit) + ' h'), el('td', '', z.i === z.n - 1 ? (x.arbeit || '-') : ''), st, el('td', 'n bl', std(z.total) + ' h'));
     t.append(tr); });
-  if (!zeilen.length) { const tr = el('tr'); const td = el('td', '', 'Keine Arbeitstage in diesem Zeitraum.'); td.colSpan = 13; tr.append(td); t.append(tr); }
-  const sr = el('tr', 'sum'); const g = el('td', 'n', 'Gesamtsumme:'); g.colSpan = 5;
+  if (!zeilen.length) { const tr = el('tr'); const td = el('td', '', 'Keine Arbeitstage in diesem Zeitraum.'); td.colSpan = 14; tr.append(td); t.append(tr); }
+  const sr = el('tr', 'sum'); const g = el('td', 'n', 'Gesamtsumme:'); g.colSpan = 6;
   sr.append(g, el('td', 'n', S.p + ' min'), el('td', 'n', S.w + ' min'), el('td', 'n or', (S.g ? '−' : '') + S.g + ' min'), el('td', 'n', S.z + ' min'), el('td', 'n', std(S.a) + ' h'), el('td', ''), el('td', ''), el('td', 'n bl', std(S.t) + ' h')); t.append(sr);
   P.append(t, el('div', 'sn-calc', 'Berechnung: Arbeitszeit netto (Pause abgezogen) + Arbeitsweg Hin- und Rückfahrt − Abzug 30 Min. pro Arbeitstag (höchstens so viel wie gefahren, nie Minus) + Zwischenfahrten zwischen Baustellen (voll bezahlt) = Total. Arbeitsweg ab Wohnort oder Lager Oftringen, je nachdem was kürzer ist (Google Maps).'));
   const sig = el('div', 'sn-sig'); sig.append(el('span', ''), el('div', '', 'Datum, Unterschrift Auftraggeber / Bauleiter')); P.append(sig, el('div', 'sn-foot', 'ASN Isolierungen GmbH • Roggenstrasse 3, 4665 Oftringen'));
@@ -802,7 +823,8 @@ $('sn-open').onclick = () => {
 // Status-Texte einer Zeile (für Tabelle und Excel gleich): [Text, rot?]
 function snStatus(z) { const x = z.x, r = [[x.abgerechnet ? 'Abgerechnet' : 'Offen', false]];
   [['Beginn', z.a.locStart || (z.i === 0 ? x.locStart : null)], ['Ende', z.a.locEnde || (z.i === z.n - 1 ? x.locEnde : null)]].forEach(([w, lo]) => { if (lo && lo.status === 'out') r.push(['⚠ ' + w + ' ' + (lo.dist >= 1000 ? (lo.dist / 1000).toFixed(1) + ' km' : lo.dist + ' m') + ' entfernt', true]); });
-  if (x.nachgetragen) r.push(['nachgetragen', true]); if (x.ab === 'FEHLT') r.push(['Fahrzeit fehlt', true]); return r; }
+  if (x.nachgetragen) r.push(['nachgetragen', true]); if (x.ab === 'FEHLT') r.push(['Fahrzeit fehlt', true]);
+  if (regieHinweis(x, z.a)) r.push(['⚠ Notiz nennt Regie – prüfen', true]); return r; }
 let SN = null;
 const LIB_PDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', LIB_AT = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js', LIB_XLS = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 function ladeSkript(src, ist) { return new Promise((ok, no) => { if (ist()) return ok(); const s = document.createElement('script'); s.src = src; s.onload = () => ist() ? ok() : no(new Error('Download-Programm nicht bereit.')); s.onerror = () => { s.remove(); no(new Error('Download-Programm konnte nicht geladen werden – Internet prüfen.')); }; document.head.append(s); }); }
@@ -824,24 +846,26 @@ $('sn-pdf').onclick = () => snKnopf('sn-pdf', 'PDF wird erstellt …', async () 
   doc.setDrawColor(...BL); doc.setLineWidth(0.6); doc.line(M, 27, W - M, 27);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...SW); doc.text(P(SN.titel), M, 34);
   // Boxen
-  const bxs = [['ANZAHL EINTRÄGE', SN.zeilen.length + ' Datensätze'], ['GESAMT-PAUSE', S.p + ' Min. (' + std(S.p) + ' h)'], ['ARBEITSWEG TOTAL', S.w + ' Min. (' + std(S.w) + ' h)'], ['ABZUG WEG (-30 MIN.)', (S.g ? '-' : '') + S.g + ' Min. (' + std(S.g) + ' h)'], ['ZWISCHENFAHRTEN', S.z + ' Min. (' + std(S.z) + ' h)'], ['ARBEITSZEIT NETTO', std(S.a) + ' Std.'], ['TOTAL', std(S.t) + ' Std.']];
-  const bw = (W - 2 * M) / 7; doc.setDrawColor(200, 208, 216); doc.setLineWidth(0.25); doc.roundedRect(M, 38, W - 2 * M, 13, 1.5, 1.5);
+  const bxs = [['ANZAHL EINTRÄGE', SN.zeilen.length + ' Datensätze'], ['GESAMT-PAUSE', S.p + ' Min. (' + std(S.p) + ' h)'], ['ARBEITSWEG TOTAL', S.w + ' Min. (' + std(S.w) + ' h)'], ['ABZUG WEG (-30 MIN.)', (S.g ? '-' : '') + S.g + ' Min. (' + std(S.g) + ' h)'], ['ZWISCHENFAHRTEN', S.z + ' Min. (' + std(S.z) + ' h)'], ['ARBEITSZEIT NETTO', std(S.a) + ' Std.'], ['DAVON REGIE (TOTAL)', std(S.r) + ' Std.'], ['TOTAL', std(S.t) + ' Std.']];
+  const bw = (W - 2 * M) / 8; doc.setDrawColor(200, 208, 216); doc.setLineWidth(0.25); doc.roundedRect(M, 38, W - 2 * M, 13, 1.5, 1.5);
   bxs.forEach(([k, v], i) => { const x = M + i * bw; if (i) doc.line(x, 38, x, 51); doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...GR); doc.text(P(k), x + 2.5, 42.5);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...(i === 3 ? OR : i === 6 ? BL : SW)); doc.text(P(v), x + 2.5, 48); });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...(i === 3 ? OR : i === 7 ? BL : SW)); doc.text(P(v), x + 2.5, 48); });
   // Tabelle
-  const kopf = ['Datum', 'Mitarbeiter', 'Auftraggeber', 'Arbeitsort', 'Zeit', 'Pause', 'Arbeitsweg (Hin- und Rückfahrt)', 'Abzug (-30m)', 'Zwischen- fahrt','Arbeitszeit', 'Notiz / Tätigkeiten', 'Status', 'Total'];
-  const rot = [];
-  const body = SN.zeilen.map((z, ri) => { const x = z.x, bs = (D.baustellen || []).find(q => q.id === z.a.baustelle) || {}; const st = snStatus(z); if (st.some(s => s[1])) rot.push(ri);
-    return [dd(x.datum), x.monteurName || '', bs.auftraggeber || '-', bs.adresse || bs.name || '', (z.a.von || '') + '-' + (z.a.bis || ''), z.pause + ' min', z.weg == null ? 'fehlt' : z.weg + ' min', z.abzug ? '-' + z.abzug + ' min' : '0 min',
+  const kopf = ['Datum', 'Mitarbeiter', 'Auftraggeber', 'Arbeitsort', 'Auftrag', 'Zeit', 'Pause', 'Arbeitsweg (Hin- und Rückfahrt)', 'Abzug (-30m)', 'Zwischen- fahrt','Arbeitszeit', 'Notiz / Tätigkeiten', 'Status', 'Total'];
+  const rot = [], gelb = [], rg = [];
+  const body = SN.zeilen.map((z, ri) => { const x = z.x, bs = (D.baustellen || []).find(q => q.id === z.a.baustelle) || {}; const st = snStatus(z); if (st.some(s => s[1])) rot.push(ri); if (regieHinweis(x, z.a)) gelb.push(ri); if (z.a.auftrag === 'regie') rg.push(ri);
+    return [dd(x.datum), x.monteurName || '', bs.auftraggeber || '-', bs.adresse || bs.name || '', aufTxt(z.a.auftrag), (z.a.von || '') + '-' + (z.a.bis || ''), z.pause + ' min', z.weg == null ? 'fehlt' : z.weg + ' min', z.abzug ? '-' + z.abzug + ' min' : '0 min',
       z.i === 0 ? '' : (z.zw == null ? 'fehlt' : z.zw + ' min'), std(z.arbeit) + ' h', z.i === z.n - 1 ? (x.arbeit || '-') : '', st.map(s => s[0]).join('\n'), std(z.total) + ' h'].map(P); });
-  if (!body.length) body.push([{ content: 'Keine Arbeitstage in diesem Zeitraum.', colSpan: 13 }]);
-  const foot = [[{ content: 'Gesamtsumme:', colSpan: 5, styles: { halign: 'right' } }, S.p + ' min', S.w + ' min', (S.g ? '-' : '') + S.g + ' min', S.z + ' min', std(S.a) + ' h', '', '', std(S.t) + ' h']];
-  const n = { halign: 'right' }, cw = [18, 24, 22, 34, 18, 13, 20, 15, 17, 17, 40, 22, 17];
-  const cs = {}; cw.forEach((w, i) => { cs[i] = Object.assign({ cellWidth: w }, [5, 6, 7, 8, 9, 12].includes(i) ? n : {}); });
+  if (!body.length) body.push([{ content: 'Keine Arbeitstage in diesem Zeitraum.', colSpan: 14 }]);
+  const foot = [[{ content: 'Gesamtsumme:', colSpan: 6, styles: { halign: 'right' } }, S.p + ' min', S.w + ' min', (S.g ? '-' : '') + S.g + ' min', S.z + ' min', std(S.a) + ' h', '', '', std(S.t) + ' h']];
+  const NUM = [6, 7, 8, 9, 10, 13], n = { halign: 'right' }, cw = [18, 22, 22, 30, 14, 18, 13, 20, 15, 17, 17, 34, 20, 17];
+  const cs = {}; cw.forEach((w, i) => { cs[i] = Object.assign({ cellWidth: w }, NUM.includes(i) ? n : {}); });
   doc.autoTable({ startY: 55, head: [kopf.map(P)], body, foot, theme: 'plain', margin: { left: M, right: M, bottom: 16 }, columnStyles: cs, showFoot: 'lastPage',
     styles: { font: 'helvetica', fontSize: 7, cellPadding: 1.4, textColor: SW, lineColor: [210, 216, 222], lineWidth: { bottom: 0.2 }, valign: 'top' },
     headStyles: { fontStyle: 'bold', lineColor: SW, lineWidth: { top: 0.4, bottom: 0.4 } }, footStyles: { fontStyle: 'bold', lineColor: SW, lineWidth: { top: 0.4, bottom: 0.4 } },
-    didParseCell: d => { if (d.section !== 'head') { if (d.column.index === 12) d.cell.styles.textColor = BL; if (d.column.index === 7) d.cell.styles.textColor = OR; if (d.section === 'body' && d.column.index === 11 && rot.includes(d.row.index)) d.cell.styles.textColor = [200, 30, 30]; } if (d.section !== 'body' && [5, 6, 7, 8, 9, 12].includes(d.column.index)) d.cell.styles.halign = 'right'; } });
+    didParseCell: d => { if (d.section !== 'head') { if (d.column.index === 13) d.cell.styles.textColor = BL; if (d.column.index === 8) d.cell.styles.textColor = OR; }
+      if (d.section === 'body') { if (d.column.index === 12 && rot.includes(d.row.index)) d.cell.styles.textColor = [200, 30, 30]; if (d.column.index === 4 && rg.includes(d.row.index)) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.textColor = [180, 95, 0]; } if (gelb.includes(d.row.index)) d.cell.styles.fillColor = [255, 243, 176]; }
+      if (d.section !== 'body' && NUM.includes(d.column.index)) d.cell.styles.halign = 'right'; } });
   let y = doc.lastAutoTable.finalY + 6;
   const calc = doc.splitTextToSize(P('Berechnung: Arbeitszeit netto (Pause abgezogen) + Arbeitsweg Hin- und Rückfahrt − Abzug 30 Min. pro Arbeitstag (höchstens so viel wie gefahren, nie Minus) + Zwischenfahrten zwischen Baustellen (voll bezahlt) = Total. Arbeitsweg ab Wohnort oder Lager Oftringen, je nachdem was kürzer ist (Google Maps).'), W - 2 * M);
   if (y + 30 > 210 - 16) { doc.addPage(); y = 20; }
@@ -855,16 +879,17 @@ function logoDaten() { return new Promise(ok => { const i = new Image(); i.onloa
 $('sn-xls').onclick = () => snKnopf('sn-xls', 'Excel wird erstellt …', async () => {
   await ladeSkript(LIB_XLS, () => !!window.XLSX);
   const h = m => Math.round((m || 0) / 60 * 100) / 100, S = SN.S;
-  const kopf = ['Datum', 'Mitarbeiter', 'Auftraggeber', 'Arbeitsort', 'Von', 'Bis', 'Pause (Min.)', 'Arbeitsweg Hin + Rück (Min.)', 'Abzug −30 (Min.)', 'Zwischenfahrt (Min.)', 'Arbeitszeit (Std.)', 'Notiz / Tätigkeiten', 'Status', 'Total (Std.)'];
+  const kopf = ['Datum', 'Mitarbeiter', 'Auftraggeber', 'Arbeitsort', 'Auftrag', 'Von', 'Bis', 'Pause (Min.)', 'Arbeitsweg Hin + Rück (Min.)', 'Abzug −30 (Min.)', 'Zwischenfahrt (Min.)', 'Arbeitszeit (Std.)', 'Notiz / Tätigkeiten', 'Status', 'Total (Std.)'];
   const rows = [['ZEITERFASSUNG / STUNDENNACHWEIS'], ['ASN Isolierungen GmbH, Roggenstrasse 3, 4665 Oftringen'], [SN.titel], ['Erstellt am: ' + dd(today())], [], kopf];
   SN.zeilen.forEach(z => { const x = z.x, bs = (D.baustellen || []).find(q => q.id === z.a.baustelle) || {};
-    rows.push([dd(x.datum), x.monteurName || '', bs.auftraggeber || '', bs.adresse || bs.name || '', z.a.von || '', z.a.bis || '', z.pause, z.weg == null ? 'fehlt' : z.weg, z.abzug ? -z.abzug : 0,
+    rows.push([dd(x.datum), x.monteurName || '', bs.auftraggeber || '', bs.adresse || bs.name || '', aufTxt(z.a.auftrag), z.a.von || '', z.a.bis || '', z.pause, z.weg == null ? 'fehlt' : z.weg, z.abzug ? -z.abzug : 0,
       z.i === 0 ? '' : (z.zw == null ? 'fehlt' : z.zw), h(z.arbeit), z.i === z.n - 1 ? (x.arbeit || '') : '', snStatus(z).map(s => s[0]).join('; '), h(z.total)]); });
-  rows.push(['Gesamtsumme', '', '', '', '', '', S.p, S.w, S.g ? -S.g : 0, S.z, h(S.a), '', '', h(S.t)]);
+  rows.push(['Gesamtsumme', '', '', '', '', '', '', S.p, S.w, S.g ? -S.g : 0, S.z, h(S.a), '', '', h(S.t)]);
+  rows.push(['Davon Regie (Total Std.)', '', '', '', '', '', '', '', '', '', '', '', '', '', h(S.r)]);
   rows.push([], ['Berechnung: Arbeitszeit netto (Pause abgezogen) + Arbeitsweg Hin- und Rückfahrt − Abzug 30 Min. pro Arbeitstag (höchstens so viel wie gefahren, nie Minus) + Zwischenfahrten (voll bezahlt) = Total.']);
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [11, 22, 20, 30, 7, 7, 10, 14, 11, 12, 12, 40, 26, 11].map(w => ({ wch: w }));
-  for (let r = 6; r < 6 + SN.zeilen.length + 1; r++) [10, 13].forEach(c => { const z = ws[XLSX.utils.encode_cell({ r, c })]; if (z && z.t === 'n') z.z = '0.00'; });
+  ws['!cols'] = [11, 22, 20, 30, 9, 7, 7, 10, 14, 11, 12, 12, 40, 30, 11].map(w => ({ wch: w }));
+  for (let r = 6; r < 6 + SN.zeilen.length + 2; r++) [11, 14].forEach(c => { const z = ws[XLSX.utils.encode_cell({ r, c })]; if (z && z.t === 'n') z.z = '0.00'; });
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Stundennachweis'); XLSX.writeFile(wb, SN.datei + '.xlsx');
 });
 
