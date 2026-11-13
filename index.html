@@ -862,7 +862,7 @@ function renderPend() {
     if (x.fotos && x.fotos.length) it.append(el('div', 'lbl ok', t('fotoErledigt')), imgs(x.fotos));
     if (x.gemeldetVon) it.append(el('div', 'meta', t('gemeldetVon') + ': ' + x.gemeldetVon + (x.gemeldetAm ? ' · ' + fmtT(x.gemeldetAm) : '')));
     const row = el('div', 'row');
-    if (x.status === 'offen' && !x._wartet) { // Monteure UND Jehon: Foto nach Erledigung + «erledigt» melden (jede Baustelle, auch neue) const b = el('button', 'ghost small', t('meldenFoto')); b.type = 'button'; b.onclick = () => { pZiel = x; $('p-file').click(); }; const b2 = el('button', 'ghost small', t('meldenOhne')); b2.type = 'button'; b2.onclick = () => melden(x, []); row.append(b, b2); }
+    if (x.status === 'offen' && !x._wartet) { const b = el('button', 'ghost small', t('meldenFoto')); b.type = 'button'; b.onclick = () => { pZiel = x; $('p-file').click(); }; const b2 = el('button', 'ghost small', t('meldenOhne')); b2.type = 'button'; b2.onclick = () => melden(x, []); row.append(b, b2); }
     if (isChef() && x.status === 'gemeldet' && !x._wartet) { const b = el('button', 'ghost small', 'Kontrolliert ✓'); b.type = 'button'; b.onclick = () => chefAkt('pendenzKontrolle', { id: x.id, ok: true }, 'm-pend'); const b2 = el('button', 'ghost small', 'Zurück auf offen'); b2.type = 'button'; b2.onclick = () => chefAkt('pendenzKontrolle', { id: x.id, ok: false }, 'm-pend'); row.append(b, b2); }
     if (isChef() && !x._wartet) { const d = el('button', 'ghost small', '🗑 Löschen'); d.type = 'button'; d.onclick = () => { if (confirm('Pendenz Nr. ' + x.nr + ' löschen?\n\nSie verschwindet für alle Monteure. Eine Kopie bleibt im Protokoll.')) chefAkt('pendenzLoeschen', { id: x.id }, 'm-pend'); }; row.append(d); }
     if (row.childNodes.length) it.append(row); L.append(it);
@@ -1256,7 +1256,7 @@ function render() {
 }
 
 /* ====== Automatisch aktualisieren (iPhone behält sonst alte Versionen) ====== */
-const APP_VERSION = '2026-11-13.21';
+const APP_VERSION = '2026-11-13.22';
 window.asnNeuLaden = () => location.reload();
 function sicherNeuLaden() { // nur wenn nichts Ungespeichertes offen ist
   const a = document.activeElement, tippt = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
