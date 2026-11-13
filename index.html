@@ -490,6 +490,7 @@ function locLokal(l, bid) { // Anzeige solange offline (Server prüft nach)
 }
 function locEl(l, was) {
   if (!l) return null;
+  if ((l.status === 'in' || l.status === 'out') && !(typeof l.dist === 'number' && isFinite(l.dist))) return el('div', 'loc na', '• ' + was + ': ' + t('locAbstandUnbekannt'));
   if (l.status === 'in') return el('div', 'loc in', '✅ ' + was + ': ' + t('aufBaustelle') + ' (' + l.dist + ' m)');
   if (l.status === 'ok') return el('div', 'loc in', '✅ ' + was + ': vom Chef bestätigt');
   if (l.status === 'out') return el('div', 'loc out', '⚠️ ' + was + ': ' + (l.dist >= 1000 ? (l.dist / 1000).toFixed(1).replace('.', ',') + ' km' : l.dist + ' m') + ' ' + t('entfernt'));
@@ -822,7 +823,7 @@ $('sn-open').onclick = () => {
 };
 // Status-Texte einer Zeile (für Tabelle und Excel gleich): [Text, rot?]
 function snStatus(z) { const x = z.x, r = [[x.abgerechnet ? 'Abgerechnet' : 'Offen', false]];
-  [['Beginn', z.a.locStart || (z.i === 0 ? x.locStart : null)], ['Ende', z.a.locEnde || (z.i === z.n - 1 ? x.locEnde : null)]].forEach(([w, lo]) => { if (lo && lo.status === 'out') r.push(['⚠ ' + w + ' ' + (lo.dist >= 1000 ? (lo.dist / 1000).toFixed(1) + ' km' : lo.dist + ' m') + ' entfernt', true]); });
+  [['Beginn', z.a.locStart || (z.i === 0 ? x.locStart : null)], ['Ende', z.a.locEnde || (z.i === z.n - 1 ? x.locEnde : null)]].forEach(([w, lo]) => { if (lo && lo.status === 'out' && !(typeof lo.dist === 'number' && isFinite(lo.dist))) r.push(['Standort ' + w + ': Abstand nicht berechenbar', true]); else if (lo && lo.status === 'out') r.push(['⚠ ' + w + ' ' + (lo.dist >= 1000 ? (lo.dist / 1000).toFixed(1) + ' km' : lo.dist + ' m') + ' entfernt', true]); });
   if (x.nachgetragen) r.push(['nachgetragen', true]); if (x.ab === 'FEHLT') r.push(['Fahrzeit fehlt', true]);
   if (regieHinweis(x, z.a)) r.push(['⚠ Notiz nennt Regie – prüfen', true]); return r; }
 let SN = null;

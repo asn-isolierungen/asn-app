@@ -162,6 +162,7 @@ const TXT = {
   auftragNormal: { de: 'Normal', en: 'Normal', sq: 'Normal', it: 'Normale', ro: 'Normal', hu: 'Normál' },
   auftragRegie: { de: 'Regie', en: 'Regie (hourly)', sq: 'Regji (me orë)', it: 'Regia (a ore)', ro: 'Regie (la oră)', hu: 'Regie (órabér)' },
   auftragWaehlen: { de: 'Bitte zuerst Auftrag wählen: Normal oder Regie.', en: 'Please choose job type first: Normal or Regie.', sq: 'Ju lutem zgjidhni fillimisht llojin e punës: Normal ose Regji.', it: 'Scegli prima il tipo di lavoro: Normale o Regia.', ro: 'Te rog alege mai întâi tipul lucrării: Normal sau Regie.', hu: 'Kérlek, először válaszd ki a megbízás típusát: Normál vagy Regie.' },
+  locAbstandUnbekannt: { de: 'Standort erfasst, Abstand zur Baustelle nicht berechenbar (Baustellen-Koordinaten fehlten)', en: 'Location recorded, distance to site could not be calculated', sq: 'Vendndodhja u regjistrua, largësia nga kantieri nuk u llogarit', it: 'Posizione registrata, distanza dal cantiere non calcolabile', ro: 'Locație înregistrată, distanța față de șantier nu s-a putut calcula', hu: 'Hely rögzítve, a munkahelytől való távolság nem számítható' },
   keinEmpfangSpaeter: { de: 'Kein Empfang – bitte später nochmals.', en: 'No signal – please try again later.', sq: 'Pa sinjal – ju lutem provoni më vonë.', it: 'Nessun segnale – riprova più tardi.', ro: 'Fără semnal – încearcă mai târziu.', hu: 'Nincs térerő – próbáld újra később.' }
 };
 let LANG = (() => { try { return JSON.parse(localStorage.getItem('asn-lang')) || 'de'; } catch (e) { return 'de'; } })();
