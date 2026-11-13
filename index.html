@@ -1213,8 +1213,28 @@ function render() {
   const t = lsGet('asn-tab', 'zeit'); $('bs-wrap').hidden = t === 'chef' || t === 'auf' || (t === 'zeit' && hatOffenenTag());
 }
 
+/* ====== Automatisch aktualisieren (iPhone behält sonst alte Versionen) ====== */
+const APP_VERSION = '2026-11-13.18';
+function sicherNeuLaden() { // nur wenn nichts Ungespeichertes offen ist
+  const a = document.activeElement, tippt = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
+  return !tippt && !fFiles.length && $('au-pos').hidden && !$('s-arbeit').value.trim() && !$('m-artikel').value.trim();
+}
+async function versionPruefen() {
+  if (!navigator.onLine) return;
+  try { const v = (await (await fetch('version.txt?x=' + Date.now(), { cache: 'no-store' })).text()).trim();
+    if (!v || v === APP_VERSION) return;
+    try { const reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.update(); } catch (e) {}
+    let schon = ''; try { schon = sessionStorage.getItem('asn-reload') || ''; } catch (e) {}
+    if (schon !== v && sicherNeuLaden()) { try { sessionStorage.setItem('asn-reload', v); } catch (e) {} location.reload(); return; } // pro Version nur 1× automatisch
+    const b = $('net'); b.className = 'net off'; b.textContent = '🔄 Neue Version bereit – hier tippen zum Aktualisieren'; b.onclick = () => location.reload();
+  } catch (e) { /* kein Netz → später */ }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') versionPruefen(); });
+setInterval(versionPruefen, 10 * 60000);
+
 /* ====== Start ====== */
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+setTimeout(versionPruefen, 1500);
 $('c-woche').click();
 zeige(); if (sess) laden();
 window.addEventListener('online', () => { if (isChef() && AUF && AUF.status === 'sendet') aufSenden(true); });
