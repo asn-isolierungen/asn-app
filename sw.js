@@ -1,5 +1,5 @@
 // ASN – Service Worker: App offline verfügbar, Fotos der Pendenzen zwischenspeichern.
-const VERSION = 'asn-v3';
+const VERSION = 'asn-v4';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './logo.png', './i18n.js'];
 
 self.addEventListener('install', e => {
@@ -16,7 +16,15 @@ self.addEventListener('fetch', e => {
     e.respondWith(caches.open('asn-bilder').then(c => c.match(e.request).then(hit => hit || fetch(e.request).then(r => { c.put(e.request, r.clone()); return r; }))));
     return;
   }
-  if (u.origin === location.origin) {                          // App selbst: Netz zuerst (immer neueste Version), sonst Speicher
-    e.respondWith(fetch(e.request).then(r => { const c = r.clone(); caches.open(VERSION).then(x => x.put(e.request, c)); return r; }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html'))));
+  if (u.origin === location.origin) {
+    // App selbst: Netz zuerst (neueste Version) – aber höchstens 3 s warten, sonst sofort aus dem Speicher (kein Hängen bei schwachem/keinem Empfang)
+    const ausSpeicher = () => caches.match(e.request, { ignoreSearch: true }).then(r => r || caches.match('./index.html'));
+    const netz = fetch(e.request).then(r => { if (r && r.ok) { const c = r.clone(); caches.open(VERSION).then(x => x.put(e.request, c)); } return r; });
+    e.respondWith(new Promise(ok => {
+      let fertig = false;
+      const t = setTimeout(() => { ausSpeicher().then(r => { if (!fertig && r) { fertig = true; ok(r); } }); }, 3000);
+      netz.then(r => { if (!fertig) { fertig = true; clearTimeout(t); ok(r); } })
+          .catch(() => { clearTimeout(t); ausSpeicher().then(r => { if (!fertig) { fertig = true; ok(r || new Response('Offline', { status: 503 })); } }); });
+    }));
   }
 });

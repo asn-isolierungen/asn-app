@@ -390,6 +390,7 @@ const isChef = () => !!(sess && sess.chef);
 class NetzFehler extends Error {}
 async function api(action, data, wartenMs) {
   if (!API) throw new Error('App ist noch nicht mit Google verbunden (API fehlt).');
+  if (!navigator.onLine) throw new NetzFehler('Kein Empfang');   // ohne Netz gar nicht erst warten
   let r;
   try {
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), wartenMs || 30000);
@@ -426,9 +427,11 @@ const IDB = { db: null,
 let wartend = [];
 async function qLoad() { try { wartend = await IDB.leicht() || []; } catch (e) { wartend = []; } netUI(); }
 async function senden(action, data, opt) {   // opt.offline = darf in Warteschlange
-  try { const j = await api(action, data); return { ok: true, j }; }
+  // Offline-fähige Einträge: ohne Netz sofort speichern; bei schwachem Netz höchstens 10 s warten, dann speichern (Server ist wiederholungssicher)
+  const ts0 = Date.now();   // Zeitpunkt des Tippens (nicht erst nach dem Warten)
+  try { const j = await api(action, data, opt && opt.offline ? 10000 : undefined); return { ok: true, j }; }
   catch (e) {
-    if (e instanceof NetzFehler && opt && opt.offline) { await IDB.add({ action, data: Object.assign({ ts: Date.now() }, data), am: Date.now(), wer: sess && (sess.id || 'chef') }); await qLoad(); return { ok: true, queued: true }; }
+    if (e instanceof NetzFehler && opt && opt.offline) { await IDB.add({ action, data: Object.assign({ ts: ts0 }, data), am: ts0, wer: sess && (sess.id || 'chef') }); await qLoad(); return { ok: true, queued: true }; }
     throw e;
   }
 }
@@ -555,10 +558,12 @@ $('bn-save').onclick = async () => {
 
 /* ====== Standort ====== */
 function standort() {
-  return new Promise(ok => {
+  return new Promise(ok0 => {
+    let fertig = false; const ok = v => { if (!fertig) { fertig = true; ok0(v); } };
+    setTimeout(() => ok({ fehler: 'Standort nicht ermittelt' }), 12000);   // feste Obergrenze: nie länger warten
     if (!navigator.geolocation) { ok({ fehler: 'Standort auf diesem Gerät nicht verfügbar' }); return; }
     navigator.geolocation.getCurrentPosition(p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy) }),
-      e => ok({ fehler: e.code === 1 ? 'Standort nicht freigegeben' : 'Standort nicht ermittelt' }), { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+      e => ok({ fehler: e.code === 1 ? 'Standort nicht freigegeben' : 'Standort nicht ermittelt' }), { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
   });
 }
 function distM(a, b) { const R = 6371000, r = x => x * Math.PI / 180; const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); }
