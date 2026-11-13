@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ASN</title>
+<meta name="theme-color" content="#0a71b9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ASN">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+/* Aufbau: Anmeldung (Name + PIN) → Kopf (Name, Empfang, Baustelle) → Reiter-Inhalt → feste Reiter-Leiste unten */
+:root{--bg:#f3f5f8;--surface:#fff;--fg:#14212e;--muted:#5d6b79;--line:#dde3ea;--brand:#0a71b9;--accent:#f5c400;--accent-ink:#14212e;
+  --ok:#1e7b34;--ok-bg:#e3f3e6;--wait:#8a5a00;--wait-bg:#fff3cf;--info:#0a5a94;--info-bg:#e1eef9;--err:#b42318;--err-bg:#fde8e6;
+  --body:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#0c1520;--surface:#14212e;--fg:#e8eef5;--muted:#9aa9b8;--line:#26384a;--brand:#3b9be0;
+  --ok:#6fd38a;--ok-bg:#163223;--wait:#f1c55a;--wait-bg:#33290f;--info:#8cc4f0;--info-bg:#132a40;--err:#ff8a7a;--err-bg:#3a1a17;color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45;margin:0;
+  padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 104px max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:26px;margin:0;color:var(--brand);font-weight:900;letter-spacing:.02em}
+h2{font-size:18px;margin:4px 0 0}
+label,.lab{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+select,input,textarea{width:100%;min-width:0;font:inherit;color:var(--fg);background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;min-height:46px}
+textarea{min-height:90px;resize:vertical}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--brand)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.grid2>*,.grid3>*{min-width:0}
+button,.filebtn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;position:relative;color:inherit}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+.primary{background:var(--accent);color:var(--accent-ink);width:100%;font-size:17px}
+.ghost{background:var(--bg);color:var(--fg);border:1.5px solid var(--line)}
+.ghost.on{background:var(--err);border-color:var(--err);color:#fff}
+.small{min-height:38px;padding:7px 12px;font-size:14px}
+.link{background:none;color:var(--brand);padding:6px;min-height:0;font-weight:600}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg button{flex:1;min-width:0;padding-left:6px;padding-right:6px}
+.seg button[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+.big{width:100%;min-height:78px;font-size:22px;border-radius:16px}
+.big.go{background:#1e7b34;color:#fff}.big.stop{background:#b42318;color:#fff}
+.msg{font-size:14px;color:var(--muted);min-height:20px}.msg.err{color:var(--err)}.msg.ok{color:var(--ok)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.item .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.nr{font-weight:800;font-size:18px;min-width:34px}
+.meta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.txt{overflow-wrap:anywhere;white-space:pre-wrap}
+.chip{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.c-offen{background:var(--err-bg);color:var(--err)}.c-gemeldet,.c-neu,.c-wartet{background:var(--wait-bg);color:var(--wait)}
+.c-erledigt,.c-geliefert,.c-ok{background:var(--ok-bg);color:var(--ok)}.c-bestellt,.c-abw{background:var(--info-bg);color:var(--info)}
+.item.done{opacity:.7}
+.imgs{display:flex;gap:6px;flex-wrap:wrap}
+.imgs img{width:64px;height:64px;object-fit:cover;border-radius:8px;display:block;background:var(--bg)}
+.imgs .pic{padding:0;min-height:0;background:none;border-radius:8px}
+.imgs.big2{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.imgs.big2 img{width:100%;height:auto;max-height:280px;object-fit:contain;border:1px solid var(--line)}
+.imgs.big2 .pic{width:100%}
+.lbl{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}.lbl.ok{color:var(--ok)}
+.empty{color:var(--muted);text-align:center;padding:20px 8px;border:1.5px dashed var(--line);border-radius:14px}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}.thumbs div{position:relative}
+.thumbs img{width:68px;height:68px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.thumbs button{position:absolute;top:-6px;right:-6px;min-height:0;padding:0;width:24px;height:24px;border-radius:50%;background:var(--fg);color:var(--bg);font-size:14px}
+table.rp{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:15px}
+table.rp td{padding:6px 2px;border-bottom:1px solid var(--line)}table.rp td:last-child{text-align:right;white-space:nowrap}
+table.rp tr.sub td{font-weight:700}table.rp tr.minus td{color:var(--err)}
+table.rp tr.tot td{font-weight:800;font-size:17px;border-bottom:0;border-top:2px solid var(--fg)}
+.wk{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.wk th,.wk td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.wk th:first-child,.wk td:first-child{text-align:left;white-space:normal}
+.scroll{overflow-x:auto}
+.head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.who{font-size:14px;color:var(--muted);text-align:right}
+.net{font-size:13px;font-weight:700;border-radius:10px;padding:8px 12px}
+.net.off{background:var(--wait-bg);color:var(--wait)}.net.okk{background:var(--ok-bg);color:var(--ok)}.net.bad{background:var(--err-bg);color:var(--err)}
+.center{min-height:72vh;display:flex;flex-direction:column;justify-content:center;gap:16px;max-width:420px;margin:0 auto;width:100%}
+.logo{width:88px;height:88px;border-radius:20px;background:#0a71b9;border:3px solid #f5c400;color:#fff;font-weight:900;font-size:28px;display:flex;align-items:center;justify-content:center;margin:0 auto;font-family:"Arial Black",Arial,sans-serif}
+.pin{letter-spacing:.5em;text-align:center;font-size:24px;font-weight:700}
+.loc{font-size:14px;font-weight:700;border-radius:10px;padding:8px 10px}
+.loc.in{background:var(--ok-bg);color:var(--ok)}.loc.out{background:var(--err-bg);color:var(--err)}.loc.na{background:var(--wait-bg);color:var(--wait)}
+.running{font-size:16px}.running b{font-size:24px}
+.red{color:var(--err);font-weight:700}
+.stp-date{font-size:18px;font-weight:800}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));z-index:5}
+nav.tabs button{flex-direction:column;gap:2px;background:none;color:var(--muted);font-size:12px;padding:6px 2px;min-height:54px}
+nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{color:var(--brand)}
+[hidden]{display:none!important}
+#lb{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
+#lb img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
+#lb button{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:16px;background:#fff;color:#000;border-radius:50%;width:46px;height:46px;min-height:0;padding:0;font-size:24px}
+.install{background:var(--info-bg);color:var(--info);border-radius:12px;padding:10px 12px;font-size:14px}
+/* Stundennachweis – immer hell, druckfreundlich (keine dunklen Flächen), A4 quer */
+#sn{position:fixed;inset:0;z-index:30;background:#e9edf2;overflow:auto;padding:12px;color:#14212e}
+.sn-bar{display:flex;gap:8px;max-width:1100px;margin:0 auto 10px}
+.sn-page{background:#fff;color:#14212e;max-width:1100px;margin:0 auto;font-family:Arial,Helvetica,sans-serif;font-size:12px;padding:0 22px 22px}
+.sn-head{display:flex;justify-content:space-between;align-items:center;padding:18px 0 12px;gap:16px;border-bottom:2px solid #0a71b9}
+.sn-head h3{margin:0;font-size:20px}.sn-head .s{color:#5d6b79;font-size:11px;margin-top:4px}.sn-head img{height:54px}
+.sn-head .adr{text-align:right;font-size:11px;color:#5d6b79}.sn-head .adr b{color:#14212e;font-size:13px}
+.sn-title{font-weight:700;font-size:14px;margin:14px 0 10px}
+.sn-boxes{display:grid;grid-template-columns:repeat(6,1fr);border:1px solid #c9d1da;border-radius:8px;margin-bottom:12px}
+.sn-boxes div{padding:8px 10px;border-right:1px solid #dde3ea}.sn-boxes div:last-child{border-right:0}
+.sn-boxes span{display:block;font-size:9.5px;color:#5d6b79;text-transform:uppercase;letter-spacing:.04em}.sn-boxes b{font-size:14px}
+.sn-t{width:100%;border-collapse:collapse;font-size:11px}
+.sn-t th{text-align:left;padding:7px 6px;font-weight:700;vertical-align:bottom;border-top:1.5px solid #14212e;border-bottom:1.5px solid #14212e}
+.sn-t td{padding:7px 6px;border-bottom:1px solid #dde3ea;vertical-align:top}
+.sn-t .n{text-align:right;white-space:nowrap}
+.sn-t tr.sum td{font-weight:700;border-top:1.5px solid #14212e;border-bottom:1.5px solid #14212e}
+.or{color:#c0560b}.bl{color:#1d3fa8;font-weight:700}.rd{color:#b42318;font-weight:700}
+.sn-sig{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:70px;font-size:11px;color:#5d6b79}
+.sn-sig div{border-top:1px dashed #5d6b79;padding-top:6px}
+.sn-foot{text-align:right;font-size:10px;color:#5d6b79;margin-top:30px}.sn-calc{font-size:11px;margin-top:8px}
+@media print{@page{size:A4 landscape;margin:10mm}body{background:#fff;padding:0}body>*:not(#sn){display:none!important}
+  #sn{position:static;padding:0;background:#fff;overflow:visible}.sn-bar{display:none}.sn-page{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ANMELDUNG -->
+  <section id="v-login" hidden>
+    <div class="center">
+      <div class="logo">ASN</div>
+      <div id="l-name-wrap"><label for="l-name">Name</label><select id="l-name"><option value="">– Name wählen –</option></select></div>
+      <div><label for="l-pin">PIN</label><input id="l-pin" class="pin" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••"></div>
+      <button class="primary" id="l-go" type="button">Anmelden</button>
+      <div class="msg" id="m-login" role="status"></div>
+      <button class="link" id="l-chef" type="button">Chef-Anmeldung</button>
+      <div class="install" id="install" hidden></div>
+    </div>
+  </section>
+
+  <!-- GESPERRT -->
+  <section id="v-block" hidden>
+    <div class="center" style="text-align:center">
+      <div class="logo">ASN</div><h2>Zugang gesperrt</h2><p>Bitte bei Jehon Avdiu melden.</p>
+      <button class="ghost" id="b-out" type="button">Abmelden</button>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <div id="v-app" hidden>
+    <div class="wrap">
+      <div class="head"><h1>ASN</h1><div class="who"><div id="h-name"></div><button class="link small" id="h-out" type="button">Abmelden</button></div></div>
+      <div class="net okk" id="net" role="status">✓ Verbunden</div>
+      <div id="bs-wrap"><label for="baustelle">Baustelle</label><select id="baustelle"><option value="">– Baustelle wählen –</option></select></div>
+
+      <!-- ZEIT (Monteur) -->
+      <section id="t-zeit">
+        <div class="card" id="stempel">
+          <div class="stp-date" id="s-date"></div>
+          <div id="s-state"></div>
+          <button class="big go" type="button" id="s-start">▶ Arbeitsbeginn</button>
+          <div id="s-ende" hidden>
+            <span class="lab">Pause heute</span>
+            <div class="seg" id="s-pause">
+              <button type="button" class="ghost small" data-v="0" aria-pressed="false">Keine</button>
+              <button type="button" class="ghost small" data-v="30" aria-pressed="false">30 Min.</button>
+              <button type="button" class="ghost small" data-v="60" aria-pressed="false">1 Std.</button>
+              <button type="button" class="ghost small" data-v="90" aria-pressed="false">1,5 Std.</button>
+            </div>
+            <label for="s-arbeit" style="margin-top:12px">Was wurde gemacht?</label>
+            <textarea id="s-arbeit" placeholder="z. B. Steigzone 3 fertig isoliert"></textarea>
+          </div>
+          <div id="s-unterwegs" hidden>
+            <label for="s-neu">Neue Baustelle</label><select id="s-neu"><option value="">– neue Baustelle wählen –</option></select>
+            <button class="big go" type="button" id="s-ankunft" style="margin-top:10px">📍 Ankunft neue Baustelle</button>
+          </div>
+          <button class="big stop" type="button" id="s-stop" hidden>■ Feierabend</button>
+          <button class="ghost" type="button" id="s-wechsel" hidden>⇄ Baustelle wechseln (Abfahrt)</button>
+          <div class="msg" id="m-stempel" role="status"></div>
+          <div id="s-abw"><span class="lab">Heute nicht gearbeitet?</span>
+            <div class="seg" id="s-abwseg">
+              <button type="button" class="ghost small" data-v="frei">Frei</button><button type="button" class="ghost small" data-v="krank">Krank</button>
+              <button type="button" class="ghost small" data-v="ferien">Ferien</button><button type="button" class="ghost small" data-v="unfall">Unfall</button>
+              <button type="button" class="ghost small" data-v="feiertag">Feiertag</button>
+            </div></div>
+        </div>
+        <h2>Meine Tage (letzte 14 Tage)</h2>
+        <div class="list" id="l-zeit"></div>
+      </section>
+
+      <!-- FOTOS -->
+      <section id="t-fotos" hidden>
+        <div class="card">
+          <div><span class="lab">Art</span>
+            <div class="seg" id="f-typ"><button type="button" class="ghost small" data-v="vorher" aria-pressed="false">Vorher</button><button type="button" class="ghost small" data-v="nachher" aria-pressed="true">Nachher</button><button type="button" class="ghost small" data-v="allgemein" aria-pressed="false">Allgemein</button></div></div>
+          <div class="grid2"><div><label for="f-nr">Pendenz-Nr. (falls)</label><input id="f-nr" inputmode="numeric" placeholder="z. B. 27"></div><div><label for="f-bereich">Bereich / Raum</label><input id="f-bereich" placeholder="z. B. 1.OG Steigzone 3"></div></div>
+          <div><label for="f-text">Bemerkung</label><input id="f-text" placeholder="kurz, was man sieht"></div>
+          <div class="thumbs" id="f-thumbs"></div>
+          <span class="filebtn ghost">📷 Fotos aufnehmen / wählen<input type="file" id="f-files" accept="image/*" multiple></span>
+          <button class="primary" type="button" id="f-send">Fotos senden</button>
+          <div class="msg" id="m-fotos" role="status"></div>
+        </div>
+        <h2>Fotos dieser Baustelle</h2><div class="list" id="l-fotos"></div>
+      </section>
+
+      <!-- PENDENZEN -->
+      <section id="t-pend" hidden>
+        <p class="hint">Rot = offen · Gelb = erledigt gemeldet, Jehon kontrolliert · Grün = kontrolliert.</p>
+        <div class="seg" id="p-filter"><button type="button" class="ghost small" data-v="offen" aria-pressed="true">Offen</button><button type="button" class="ghost small" data-v="alle" aria-pressed="false">Alle</button></div>
+        <div class="msg" id="m-pend" role="status"></div>
+        <div class="list" id="l-pend"></div>
+        <input type="file" id="p-file" accept="image/*" multiple hidden>
+      </section>
+
+      <!-- MATERIAL -->
+      <section id="t-mat" hidden>
+        <div class="card">
+          <div><label for="m-artikel">Was fehlt?</label><input id="m-artikel" list="artikel" placeholder="z. B. Alu-Klebeband 50 mm"></div>
+          <datalist id="artikel"><option value="Paroc Hvac Slab AluCoat 30 mm"><option value="Paroc Hvac Slab AluCoat 50 mm"><option value="Paroc Hvac Slab AluCoat 100 mm"><option value="Flumroc Conlit Ductboard"><option value="Kautschuk 19 mm"><option value="Kautschuk 32 mm"><option value="Armaflex-Kleber"><option value="Alu-Klebeband 50 mm"><option value="Alu-Klebeband 75 mm"><option value="Tellerschweissstifte"><option value="Brandschutzwurst"><option value="Alublech"><option value="Blechschrauben"><option value="Pittseal"></datalist>
+          <div class="grid3"><div><label for="m-menge">Menge</label><input id="m-menge" inputmode="decimal" placeholder="10"></div>
+            <div><label for="m-einheit">Einheit</label><select id="m-einheit"><option>Stk</option><option>m²</option><option>m</option><option>Rolle</option><option>Paket</option><option>Karton</option><option>Dose</option></select></div>
+            <div><label for="m-bis">Bis wann</label><select id="m-bis"><option value="normal">Normal</option><option value="dringend">Dringend</option><option value="heute">HEUTE</option></select></div></div>
+          <div><label for="m-text">Bemerkung</label><input id="m-text" placeholder="z. B. Lieferung direkt auf Baustelle"></div>
+          <button class="primary" type="button" id="m-send">Material bestellen</button>
+          <div class="msg" id="m-mat" role="status"></div>
+        </div>
+        <h2>Bestellungen dieser Baustelle</h2><div class="list" id="l-mat"></div>
+      </section>
+
+      <!-- CHEF -->
+      <section id="t-chef" hidden>
+        <div class="card">
+          <h2 style="margin:0">Stunden</h2>
+          <div class="grid2"><div><label for="c-von">Von</label><input type="date" id="c-von"></div><div><label for="c-bis">Bis</label><input type="date" id="c-bis"></div></div>
+          <div class="row"><button class="ghost small" type="button" id="c-woche">Diese Woche</button><button class="ghost small" type="button" id="c-vorwoche">Letzte Woche</button><button class="ghost small" type="button" id="c-monat">Dieser Monat</button><button class="ghost small" type="button" id="c-vormonat">Letzter Monat</button></div>
+          <div class="scroll"><table class="wk" id="c-sum"></table></div>
+          <div class="grid2"><div><label for="sn-m">Mitarbeiter</label><select id="sn-m"><option value="">Alle</option></select></div><div><label for="sn-b">Baustelle</label><select id="sn-b"><option value="">Alle</option></select></div></div>
+          <button class="primary" type="button" id="sn-open">📄 Stundennachweis anzeigen / drucken</button>
+          <div class="list" id="c-rap"></div>
+        </div>
+        <div class="card">
+          <h2 style="margin:0">Zeit nachtragen / korrigieren</h2>
+          <div class="grid2"><div><label for="n-mon">Monteur</label><select id="n-mon"></select></div><div><label for="n-datum">Datum</label><input type="date" id="n-datum"></div></div>
+          <div class="grid2"><div><label for="n-status">Tag</label><select id="n-status"><option value="arbeit">Arbeit</option><option value="frei">Frei</option><option value="krank">Krank</option><option value="ferien">Ferien</option><option value="unfall">Unfall</option><option value="feiertag">Feiertag</option></select></div><div><label for="n-bau">Baustelle</label><select id="n-bau"></select></div></div>
+          <div id="n-arb"><div class="grid2"><div><label for="n-von">Von</label><input type="time" id="n-von"></div><div><label for="n-bis">Bis</label><input type="time" id="n-bis"></div></div>
+            <div style="margin-top:10px"><span class="lab">Pause</span><div class="seg" id="n-pause"><button type="button" class="ghost small" data-v="0" aria-pressed="false">Keine</button><button type="button" class="ghost small" data-v="30" aria-pressed="false">30 Min.</button><button type="button" class="ghost small" data-v="60" aria-pressed="false">1 Std.</button><button type="button" class="ghost small" data-v="90" aria-pressed="false">1,5 Std.</button></div></div>
+            <div style="margin-top:10px"><label for="n-text">Tätigkeit</label><input id="n-text"></div></div>
+          <button class="ghost" type="button" id="n-save">Speichern (wird als «nachgetragen» vermerkt)</button>
+          <div class="msg" id="m-nach" role="status"></div>
+        </div>
+        <div class="card"><h2 style="margin:0">Monteure &amp; Sperren</h2><div class="list" id="c-mont"></div>
+          <details><summary class="lab" style="cursor:pointer">Neuer Monteur</summary>
+            <div class="grid2" style="margin-top:8px"><input id="nm-name" placeholder="Vor- und Nachname"><input id="nm-pin" class="pin" inputmode="numeric" maxlength="4" placeholder="PIN"></div>
+            <input id="nm-wohn" placeholder="Wohnadresse (Strasse Nr, PLZ Ort)" style="margin-top:8px"><button class="ghost small" type="button" id="nm-save" style="margin-top:8px">Hinzufügen</button></details>
+          <div class="msg" id="m-mont" role="status"></div></div>
+        <div class="card"><h2 style="margin:0">Baustellen (Adresse, Standort 500 m)</h2><div class="list" id="c-bau"></div>
+          <details><summary class="lab" style="cursor:pointer">Neue Baustelle</summary>
+            <input id="nb-name" placeholder="Name, z. B. Busdepot Grenchen" style="margin-top:8px"><input id="nb-adr" placeholder="Adresse (Strasse Nr, PLZ Ort)" style="margin-top:8px"><input id="nb-ag" placeholder="Auftraggeber" style="margin-top:8px">
+            <button class="ghost small" type="button" id="nb-save" style="margin-top:8px">Hinzufügen</button></details>
+          <div class="msg" id="m-bau" role="status"></div></div>
+        <div class="card"><h2 style="margin:0">Fahrzeiten (Google Maps)</h2><p class="hint">Immer der kürzere Weg: Wohnort oder Lager Roggenstrasse 3, Oftringen. Abzug 30 Min. pro Tag, nie Minus.</p>
+          <div class="scroll"><table class="wk" id="c-fz"></table></div>
+          <button class="ghost small" type="button" id="fz-neu">Alle Fahrzeiten neu berechnen</button><div class="msg" id="m-fz" role="status"></div></div>
+        <div class="card"><h2 style="margin:0">Chef-PIN ändern</h2><div class="grid2"><input id="c-newpin" class="pin" inputmode="numeric" maxlength="4" placeholder="••••" aria-label="Neue Chef-PIN"><button class="ghost" type="button" id="c-pinsave">Ändern</button></div><div class="msg" id="m-cpin" role="status"></div></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="sn" hidden><div class="sn-bar"><button class="primary" type="button" id="sn-print" style="width:auto">Drucken / PDF</button><button class="ghost" type="button" id="sn-close" style="background:#fff;color:#14212e">Schliessen</button></div><div class="sn-page" id="sn-page"></div></div>
+<div id="lb" hidden role="dialog" aria-label="Foto"><img id="lb-img" alt="Foto gross"><button type="button" aria-label="Schliessen" id="lb-x">×</button></div>
+<nav class="tabs" role="tablist" id="nav" hidden>
+  <button role="tab" data-t="zeit" aria-selected="true" id="tab-zeit"><span class="ic">🕒</span>Zeit</button>
+  <button role="tab" data-t="fotos" aria-selected="false"><span class="ic">📷</span>Fotos</button>
+  <button role="tab" data-t="pend" aria-selected="false"><span class="ic">✅</span>Pendenzen</button>
+  <button role="tab" data-t="mat" aria-selected="false"><span class="ic">📦</span>Material</button>
+  <button role="tab" data-t="chef" aria-selected="false" id="tab-chef" hidden><span class="ic">👔</span>Chef</button>
+</nav>
+
+<script>
+'use strict';
+/* ====== EINSTELLUNG: Adresse der Google-Web-App (nach Bereitstellung eintragen) ====== */
+const API = 'https://script.google.com/macros/s/AKfycbwP-W3Ina6q94Ow3d_Bc-_rGwlFl2o8TzxvTCjBGHgPwLwu-Th6W1aXA-qJZauzzsiA0g/exec';   // z. B. 'https://script.google.com/macros/s/XXXXXXXX/exec'
+
+const $ = id => document.getElementById(id);
+const el = (t, c, txt) => { const e = document.createElement(t); if (c) e.className = c; if (txt != null) e.textContent = txt; return e; };
+const TAG = { arbeit: 'Arbeit', frei: 'Frei', krank: 'Krank', ferien: 'Ferien', unfall: 'Unfall', feiertag: 'Feiertag' };
+const pad = n => String(n).padStart(2, '0');
+const isoD = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const today = () => isoD(new Date());
+const nowHM = () => { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const dd = s => { if (!s) return ''; const [y, m, d] = s.split('-'); return d + '.' + m + '.' + y; };
+const wdD = s => { const [y, m, d] = s.split('-'); return ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][new Date(+y, +m - 1, +d).getDay()] + ' ' + dd(s); };
+const fmtT = ms => { const d = new Date(ms); return d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }); };
+const std = m => (Math.abs(m || 0) / 60).toFixed(2);
+const mins = m => Math.round(m || 0) + ' Min.';
+const thumb = id => 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w1600';
+function msg(id, t, k) { if (!id || !$(id)) return; $(id).textContent = t; $(id).className = 'msg' + (k ? ' ' + k : ''); }
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+let sess = lsGet('asn-sess', null);       // {token, chef:true} oder {token, id, name}
+let D = lsGet('asn-daten', null);         // letzte Daten vom Server (für Offline)
+const isChef = () => !!(sess && sess.chef);
+
+/* ====== Server ====== */
+class NetzFehler extends Error {}
+async function api(action, data) {
+  if (!API) throw new Error('App ist noch nicht mit Google verbunden (API fehlt).');
+  let r;
+  try {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 30000);
+    r = await fetch(API, { method: 'POST', body: JSON.stringify(Object.assign({ action, token: sess && sess.token, chef: isChef() }, data || {})), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: ctl.signal });
+    clearTimeout(t);
+  } catch (e) { throw new NetzFehler('Kein Empfang'); }
+  let j; try { j = await r.json(); } catch (e) { throw new NetzFehler('Server nicht erreichbar'); }
+  if (!j.ok) {
+    if (j.fehler === 'ABGEMELDET') { abmelden('Bitte neu anmelden.'); }
+    if (j.fehler === 'GESPERRT') { zeigeSperre(); }
+    throw new Error(j.fehler || 'Fehler');
+  }
+  return j;
+}
+
+/* ====== Warteschlange (offline) in IndexedDB – auch Fotos ====== */
+const IDB = { db: null,
+  open() { return this.db ? Promise.resolve(this.db) : new Promise((ok, no) => { const q = indexedDB.open('asn', 1); q.onupgradeneeded = () => q.result.createObjectStore('q', { keyPath: 'k', autoIncrement: true }); q.onsuccess = () => { this.db = q.result; ok(this.db); }; q.onerror = () => no(q.error); }); },
+  async tx(mode, fn) { const db = await Promise.race([this.open(), new Promise((_, no) => setTimeout(() => no(new Error('Speicher auf dem Handy nicht verfügbar')), 4000))]); return new Promise((ok, no) => { const t = db.transaction('q', mode); const s = t.objectStore('q'); const r = fn(s); t.oncomplete = () => ok(r && r.result); t.onerror = () => no(t.error); }); },
+  add(v) { return this.tx('readwrite', s => s.add(v)); }, all() { return this.tx('readonly', s => s.getAll()); }, del(k) { return this.tx('readwrite', s => s.delete(k)); }
+};
+let wartend = [];
+async function qLoad() { try { wartend = await IDB.all() || []; } catch (e) { wartend = []; } netUI(); }
+async function senden(action, data, opt) {   // opt.offline = darf in Warteschlange
+  try { const j = await api(action, data); return { ok: true, j }; }
+  catch (e) {
+    if (e instanceof NetzFehler && opt && opt.offline) { await IDB.add({ action, data: Object.assign({ ts: Date.now() }, data), am: Date.now(), wer: sess && (sess.id || 'chef') }); await qLoad(); return { ok: true, queued: true }; }
+    throw e;
+  }
+}
+let flushing = false;
+async function flush() {
+  if (flushing || !navigator.onLine || !sess) return; flushing = true;
+  try {
+    const items = (await IDB.all()) || [];
+    for (const it of items) {
+      if (it.wer && sess && it.wer !== (sess.id || 'chef')) continue;
+      try { await api(it.action, it.data); await IDB.del(it.k); }
+      catch (e) { if (e instanceof NetzFehler) break; await IDB.del(it.k); const f = lsGet('asn-fehler', []); f.push({ am: Date.now(), was: it.action, fehler: e.message }); lsSet('asn-fehler', f.slice(-20)); }
+    }
+  } finally { flushing = false; await qLoad(); }
+  laden();
+}
+function netUI() {
+  const b = $('net'), n = wartend.length;
+  if (!navigator.onLine) { b.className = 'net off'; b.textContent = '📶 Kein Empfang' + (n ? ' – ' + n + (n === 1 ? ' Eintrag wartet' : ' Einträge warten') + '. Bei Empfang App wieder öffnen.' : ' – du kannst trotzdem stempeln.'); }
+  else if (n) { b.className = 'net off'; b.textContent = '⏳ ' + n + (n === 1 ? ' Eintrag wird' : ' Einträge werden') + ' gesendet …'; }
+  else { const f = lsGet('asn-fehler', []); if (f.length) { b.className = 'net bad'; b.textContent = '⚠️ ' + f[f.length - 1].fehler + ' (antippen zum Ausblenden)'; } else { b.className = 'net okk'; b.textContent = '✓ Verbunden – alles gesendet'; } }
+}
+$('net').onclick = () => { lsSet('asn-fehler', []); netUI(); };
+addEventListener('online', () => { netUI(); flush(); }); addEventListener('offline', netUI);
+setInterval(() => { if (navigator.onLine && wartend.length) flush(); }, 30000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { flush(); } });
+
+/* ====== Daten laden ====== */
+let ladeT = null;
+async function laden() {
+  if (!sess) return;
+  try { const j = await api('daten', {}); D = j; lsSet('asn-daten', j); if (j.ich) { sess.name = j.ich.name; lsSet('asn-sess', sess); } render(); }
+  catch (e) { if (!(e instanceof NetzFehler)) msg('m-stempel', e.message, 'err'); render(); }
+}
+
+/* ====== Anmeldung ====== */
+let chefMode = false;
+async function namenLaden() {
+  const s = $('l-name'); let liste = lsGet('asn-namen', []);
+  try { const j = await api('namen', {}); liste = j.monteure; lsSet('asn-namen', liste); } catch (e) { if (!liste.length) msg('m-login', e.message, 'err'); }
+  const cur = s.value; s.length = 1; liste.forEach(m => s.append(new Option(m.name, m.id))); s.value = cur;
+}
+$('l-chef').onclick = () => { chefMode = !chefMode; $('l-name-wrap').hidden = chefMode; $('l-chef').textContent = chefMode ? 'Monteur-Anmeldung' : 'Chef-Anmeldung'; msg('m-login', chefMode ? 'Chef-PIN eingeben.' : ''); };
+$('l-go').onclick = async () => {
+  const pin = $('l-pin').value.trim(); if (!/^\d{4}$/.test(pin)) { msg('m-login', 'Bitte 4-stellige PIN eingeben.', 'err'); return; }
+  $('l-go').disabled = true; msg('m-login', 'Anmelden …');
+  try {
+    if (chefMode) { const j = await api('chefLogin', { pin }); sess = { token: j.token, chef: true, name: 'Jehon Avdiu' }; }
+    else { const id = $('l-name').value; if (!id) throw new Error('Bitte Namen wählen.'); const j = await api('login', { monteur: id, pin }); sess = { token: j.token, id: j.monteur.id, name: j.monteur.name }; }
+    lsSet('asn-sess', sess); $('l-pin').value = ''; msg('m-login', ''); zeige(); laden();
+  } catch (e) { msg('m-login', e.message === 'GESPERRT' ? 'Zugang gesperrt – bitte bei Jehon melden.' : (e instanceof NetzFehler ? 'Kein Empfang – Anmelden braucht Internet.' : e.message), 'err'); }
+  $('l-go').disabled = false;
+};
+$('l-pin').addEventListener('keydown', e => { if (e.key === 'Enter') $('l-go').click(); });
+function abmelden(t) {
+  if (wartend.length && !confirm('Es warten noch ' + wartend.length + ' Einträge auf Empfang. Wirklich abmelden? Sie werden beim nächsten Anmelden gesendet.')) return;
+  sess = null; lsSet('asn-sess', null); D = null; lsSet('asn-daten', null); zeige(); if (t) msg('m-login', t, 'err');
+}
+function zeigeSperre() { $('v-login').hidden = true; $('v-app').hidden = true; $('nav').hidden = true; $('v-block').hidden = false; }
+$('h-out').onclick = () => abmelden(); $('b-out').onclick = () => { sess = null; lsSet('asn-sess', null); zeige(); };
+function zeige() {
+  $('v-block').hidden = true; $('v-login').hidden = !!sess; $('v-app').hidden = !sess; $('nav').hidden = !sess;
+  $('tab-chef').hidden = !isChef();
+  if (!sess) { namenLaden(); installHinweis(); return; }
+  $('h-name').textContent = sess.name + (isChef() ? ' (Chef)' : '');
+  if (isChef() && lsGet('asn-tab', '') === 'zeit') tab('chef'); else tab(lsGet('asn-tab', isChef() ? 'chef' : 'zeit'));
+  render();
+}
+function installHinweis() {
+  const st = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (st) return; const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  $('install').hidden = false; $('install').textContent = ios ? 'Tipp: Unten auf «Teilen» ⬆️ und dann «Zum Home-Bildschirm» – dann ist ASN wie eine App auf dem Handy.' : 'Tipp: Im Browser-Menü ⋮ «App installieren» bzw. «Zum Startbildschirm hinzufügen» – dann ist ASN wie eine App auf dem Handy.';
+}
+
+/* ====== Reiter ====== */
+function tab(t) {
+  if (t === 'chef' && !isChef()) t = 'zeit'; if (t === 'zeit' && isChef()) t = 'chef';
+  document.querySelectorAll('nav.tabs button').forEach(x => x.setAttribute('aria-selected', String(x.dataset.t === t)));
+  ['zeit', 'fotos', 'pend', 'mat', 'chef'].forEach(x => $('t-' + x).hidden = x !== t);
+  $('tab-zeit').hidden = isChef();
+  $('bs-wrap').hidden = t === 'chef' || t === 'zeit' && hatOffenenTag();
+  lsSet('asn-tab', t); window.scrollTo(0, 0);
+}
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => tab(b.dataset.t));
+function seg(id, cb) { $(id).querySelectorAll('button').forEach(b => b.onclick = () => { $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); cb && cb(b.dataset.v); }); }
+const segVal = id => { const b = $(id).querySelector('[aria-pressed="true"]'); return b ? b.dataset.v : null; };
+function segReset(id) { $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false')); }
+
+/* ====== Baustellen-Auswahl ====== */
+const bau = () => $('baustelle').value;
+const bName = id => ((D && D.baustellen || []).find(b => b.id === id) || {}).name || id || '';
+function fillBau() {
+  const list = (D && D.baustellen || []).slice().sort((a, b) => (a.sort || 99) - (b.sort || 99));
+  const s = $('baustelle'), cur = s.value || lsGet('asn-bau', '');
+  s.length = 1; list.forEach(b => s.append(new Option(b.name, b.id))); if ([...s.options].some(o => o.value === cur)) s.value = cur;
+}
+$('baustelle').onchange = () => { lsSet('asn-bau', bau()); render(); };
+
+/* ====== Standort ====== */
+function standort() {
+  return new Promise(ok => {
+    if (!navigator.geolocation) { ok({ fehler: 'Standort auf diesem Gerät nicht verfügbar' }); return; }
+    navigator.geolocation.getCurrentPosition(p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy) }),
+      e => ok({ fehler: e.code === 1 ? 'Standort nicht freigegeben' : 'Standort nicht ermittelt' }), { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+  });
+}
+function distM(a, b) { const R = 6371000, r = x => x * Math.PI / 180; const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); }
+function locLokal(l, bid) { // Anzeige solange offline (Server prüft nach)
+  if (!l || l.fehler) return { status: 'na', info: l && l.fehler };
+  const b = (D && D.baustellen || []).find(x => x.id === bid);
+  if (!b || b.lat == null) return { status: 'na', info: 'Baustellen-Standort fehlt' };
+  const d = Math.round(distM(l, { lat: b.lat, lng: b.lng })); return { status: d <= 500 ? 'in' : 'out', dist: d };
+}
+function locEl(l, was) {
+  if (!l) return null;
+  if (l.status === 'in') return el('div', 'loc in', '✅ ' + was + ': auf der Baustelle (' + l.dist + ' m)');
+  if (l.status === 'out') return el('div', 'loc out', '⚠️ ' + was + ': ' + (l.dist >= 1000 ? (l.dist / 1000).toFixed(1).replace('.', ',') + ' km' : l.dist + ' m') + ' von der Baustelle entfernt');
+  return el('div', 'loc na', '• ' + was + ': ' + (l.info || 'kein Standort'));
+}
+
+/* ====== Stempeluhr (Monteur) ====== */
+seg('s-pause');
+function meineTage() {
+  const r = (D && D.rapporte || []).slice();
+  // wartende Einträge sichtbar machen
+  wartend.filter(w => w.wer === (sess && sess.id)).forEach(w => {
+    const d = isoD(new Date(w.data.ts)); const id = sess.id + '_' + d; let x = r.find(y => y.id === id);
+    if (w.action === 'stempelStart' && !x) r.push({ id, datum: d, status: 'arbeit', baustelle: w.data.baustelle, von: new Date(w.data.ts).toTimeString().slice(0, 5), bis: '', locStart: locLokal(w.data.loc, w.data.baustelle), _wartet: true });
+    if (w.action === 'stempelEnde') { x = x || r.find(y => y.status === 'arbeit' && !y.bis); if (x) { x.bis = new Date(w.data.ts).toTimeString().slice(0, 5); x.pause = +w.data.pause; x.arbeit = w.data.arbeit; x._wartet = true; x.locEnde = locLokal(w.data.loc, x.baustelle); } }
+    if (w.action === 'wechselAbfahrt') { x = x || r.find(y => y.status === 'arbeit' && !y.bis); if (x) { x.unterwegs = { ab: aktBau(x), um: new Date(w.data.ts).toTimeString().slice(0, 5) }; x._wartet = true; } }
+    if (w.action === 'wechselAnkunft') { x = x || r.find(y => y.status === 'arbeit' && !y.bis); if (x) { x.abschnitte = (x.abschnitte || []).concat([{ baustelle: w.data.baustelle, von: new Date(w.data.ts).toTimeString().slice(0, 5), bis: '' }]); x.unterwegs = null; x._wartet = true; } }
+    if (w.action === 'abwesend' && !x) r.push({ id, datum: d, status: w.data.status, _wartet: true });
+  });
+  return r.sort((a, b) => b.datum.localeCompare(a.datum));
+}
+function offenerTag() { const t = meineTage(); const h = t.find(x => x.datum === today()); if (h) return h; const g = t.find(x => x.status === 'arbeit' && !x.bis); return g || null; }
+function hatOffenenTag() { const x = !isChef() && offenerTag(); return !!(x && x.status === 'arbeit' && !x.bis); }
+function renderStempel() {
+  if (isChef()) return;
+  $('s-date').textContent = wdD(today());
+  const x = offenerTag(), st = $('s-state'); st.innerHTML = '';
+  const laeuft = x && x.status === 'arbeit' && !x.bis, fertig = x && (x.bis || x.status !== 'arbeit') && x.datum === today();
+  const unterwegs = laeuft && x.unterwegs;
+  $('s-start').hidden = !!(laeuft || fertig); $('s-abw').hidden = !!(laeuft || fertig);
+  $('s-stop').hidden = !laeuft || !!unterwegs; $('s-ende').hidden = !laeuft || !!unterwegs; $('s-wechsel').hidden = !laeuft || !!unterwegs; $('s-unterwegs').hidden = !unterwegs;
+  if (unterwegs) { const s = $('s-neu'), c = s.value; s.length = 1; (D && D.baustellen || []).filter(b => b.id !== x.unterwegs.ab).sort((a, b) => (a.sort || 99) - (b.sort || 99)).forEach(b => s.append(new Option(b.name, b.id))); s.value = c; }
+  $('bs-wrap').hidden = $('t-zeit').hidden ? $('bs-wrap').hidden : !!laeuft;
+  if (laeuft) {
+    (x.abschnitte && x.abschnitte.length ? x.abschnitte : [{ baustelle: x.baustelle, von: x.von, bis: '' }]).forEach((a, i, all) => {
+      const d = el('div', 'running'); if (a.bis) d.append(bName(a.baustelle) + ': ' + a.von + '–' + a.bis);
+      else { d.append('Arbeit läuft seit ', el('b', '', a.von), (x.datum !== today() ? ' (' + dd(x.datum) + ')' : '') + ' · ' + bName(a.baustelle)); } st.append(d);
+      const l = locEl(a.locStart || (i === 0 ? x.locStart : null), i === 0 ? 'Beginn' : 'Ankunft'); if (l && !a.bis) st.append(l); });
+    if (unterwegs) st.append(el('div', 'loc na', '🚐 Unterwegs seit ' + x.unterwegs.um + ' von ' + bName(x.unterwegs.ab) + ' – bei Ankunft neue Baustelle wählen und stempeln.'));
+  }
+  if (fertig) {
+    if (x.status !== 'arbeit') st.append(el('div', 'running', 'Heute: ' + TAG[x.status] + ' ✓'));
+    else { st.append(el('div', 'running', 'Feierabend ✓ – heute erfasst' + (x._wartet ? ' (wird gesendet)' : ''))); if (x.total != null) st.append(rpTable(x)); [locEl(x.locStart, 'Beginn'), locEl(x.locEnde, 'Feierabend')].forEach(l => l && st.append(l)); }
+  }
+}
+$('s-start').onclick = async () => {
+  if (!bau()) { msg('m-stempel', 'Bitte oben zuerst die Baustelle wählen.', 'err'); $('baustelle').focus(); return; }
+  const b = $('s-start'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …');
+  const loc = await standort();
+  try { const r = await senden('stempelStart', { baustelle: bau(), loc }, { offline: true });
+    msg('m-stempel', 'Arbeitsbeginn ' + (r.queued ? nowHM() + ' gespeichert – wird bei Empfang gesendet.' : r.j.rapport.von + ' gestempelt.'), 'ok');
+    if (!r.queued) await laden(); }
+  catch (e) { msg('m-stempel', e.message, 'err'); }
+  b.disabled = false; render();
+};
+$('s-stop').onclick = async () => {
+  const p = segVal('s-pause'); if (p == null) { msg('m-stempel', 'Bitte Pause antippen (Keine / 30 Min. / 1 Std. / 1,5 Std.).', 'err'); return; }
+  const t = $('s-arbeit').value.trim(); if (!t) { msg('m-stempel', 'Bitte kurz schreiben, was gemacht wurde.', 'err'); $('s-arbeit').focus(); return; }
+  const b = $('s-stop'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …');
+  const loc = await standort();
+  try { const r = await senden('stempelEnde', { pause: +p, arbeit: t, loc }, { offline: true });
+    $('s-arbeit').value = ''; segReset('s-pause');
+    msg('m-stempel', r.queued ? 'Feierabend ' + nowHM() + ' gespeichert – wird bei Empfang gesendet.' : 'Feierabend ' + r.j.rapport.bis + ' gestempelt. Total heute ' + std(r.j.rapport.total) + ' Std. Schönen Abend!', 'ok');
+    if (!r.queued) await laden(); }
+  catch (e) { msg('m-stempel', e.message, 'err'); }
+  b.disabled = false; render();
+};
+const aktBau = x => { const a = x.abschnitte && x.abschnitte.length ? x.abschnitte[x.abschnitte.length - 1] : null; return a ? a.baustelle : x.baustelle; };
+$('s-wechsel').onclick = async () => {
+  const x = offenerTag(); if (!x) return;
+  if (!confirm('Abfahrt von ' + bName(aktBau(x)) + ' jetzt stempeln? Die Arbeit dort endet jetzt.')) return;
+  const b = $('s-wechsel'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …'); const loc = await standort();
+  try { const r = await senden('wechselAbfahrt', { loc }, { offline: true }); msg('m-stempel', 'Abfahrt ' + (r.queued ? nowHM() + ' gespeichert – wird bei Empfang gesendet.' : 'gestempelt.') + ' Bei Ankunft neue Baustelle stempeln.', 'ok'); if (!r.queued) await laden(); }
+  catch (e) { msg('m-stempel', e.message, 'err'); } b.disabled = false; render();
+};
+$('s-ankunft').onclick = async () => {
+  const nb = $('s-neu').value; if (!nb) { msg('m-stempel', 'Bitte die neue Baustelle wählen.', 'err'); $('s-neu').focus(); return; }
+  const b = $('s-ankunft'); b.disabled = true; msg('m-stempel', 'Standort wird geprüft …'); const loc = await standort();
+  try { const r = await senden('wechselAnkunft', { baustelle: nb, loc }, { offline: true }); lsSet('asn-bau', nb); $('baustelle').value = nb;
+    msg('m-stempel', 'Ankunft ' + bName(nb) + (r.queued ? ' ' + nowHM() + ' gespeichert – wird bei Empfang gesendet.' : ' gestempelt.'), 'ok'); if (!r.queued) await laden(); }
+  catch (e) { msg('m-stempel', e.message, 'err'); } b.disabled = false; render();
+};
+$('s-abwseg').querySelectorAll('button').forEach(b => b.onclick = async () => {
+  const v = b.dataset.v; if (!confirm('Heute als «' + TAG[v] + '» eintragen?')) return;
+  try { const r = await senden('abwesend', { status: v }, { offline: true }); msg('m-stempel', 'Heute: ' + TAG[v] + (r.queued ? ' gespeichert – wird gesendet.' : ' eingetragen.'), 'ok'); if (!r.queued) await laden(); }
+  catch (e) { msg('m-stempel', e.message, 'err'); } render();
+});
+function rpTable(x) {
+  const t = el('table', 'rp'); const add = (a, b, c) => { const tr = el('tr', c || ''); tr.append(el('td', '', a), el('td', '', b)); t.append(tr); };
+  if (x.status !== 'arbeit') { add(TAG[x.status], 'kein Arbeitsweg'); return t; }
+  const abs = x.abschnitte && x.abschnitte.length ? x.abschnitte : [{ baustelle: x.baustelle, von: x.von, bis: x.bis }];
+  abs.forEach(a => add('Arbeitszeit ' + (abs.length > 1 ? bName(a.baustelle) + ' ' : '') + a.von + '–' + (a.bis || '…'), std(dauer(a)) + ' Std.'));
+  add('− Pause', mins(x.pause), 'minus'); add('Arbeitszeit netto', std(x.arbeitNetto) + ' Std.', 'sub');
+  if (x.ab === 'FEHLT' || x.fahrt == null) add('Arbeitsweg', 'Fahrzeit fehlt – Chef prüft');
+  else { const ab2 = String(x.ab || '').split(' / '); add('Arbeitsweg hin (ab ' + ab2[0].replace(/^hin /, '') + ')', mins(x.hin)); add('Arbeitsweg retour (nach ' + (ab2[1] || ab2[0]).replace(/^retour /, '') + ')', mins(x.retour)); add('Arbeitsweg Hin + Rück', mins(x.fahrt), 'sub'); add('− Abzug Weg (max. 30 Min., nie Minus)', mins(-x.abzug), 'minus'); }
+  (x.zwischenDetail || []).forEach(z => add('Zwischenfahrt ' + bName(z.von) + ' → ' + bName(z.nach) + ' (voll bezahlt)', z.bez == null ? 'fehlt' : mins(z.bez)));
+  add('TOTAL (Zeit + Weg' + ((x.zwischen || 0) > 0 ? ' + Zwischenfahrt' : '') + ')', std(x.total) + ' Std.', 'tot'); return t;
+}
+const hmMin = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : null; };
+function dauer(a) { const v = hmMin(a.von), b = hmMin(a.bis); if (v == null || b == null) return 0; return (b < v ? b + 1440 : b) - v; }
+function tagItem(x, chef) {
+  const it = el('div', 'item'); const top = el('div', 'top');
+  const chip = x._wartet ? ['c-wartet', 'wird gesendet'] : x.status !== 'arbeit' ? ['c-abw', TAG[x.status]] : !x.bis ? (x.datum < today() ? ['c-offen', 'offen'] : ['c-neu', 'läuft']) : ['c-ok', std(x.total) + ' Std.'];
+  top.append(el('div', '', (chef ? (x.monteurName || '') + ' · ' : '') + wdD(x.datum) + (x.baustelle ? ' · ' + bName(x.baustelle) : '')), el('span', 'chip ' + chip[0], chip[1])); it.append(top);
+  if (x.status === 'arbeit' && !x.bis) it.append(x.datum < today() ? el('div', 'loc out', '⚠️ Feierabend nicht gestempelt (Beginn ' + x.von + ')') : el('div', 'loc na', 'Arbeit läuft seit ' + x.von));
+  else if (x.status === 'arbeit' && x.total != null) { it.append(rpTable(x)); if (x.arbeit) it.append(el('div', 'txt', x.arbeit)); }
+  const absL = x.abschnitte && x.abschnitte.length > 1 ? x.abschnitte : null;
+  if (absL) absL.forEach((a, i) => { [locEl(a.locStart, (i === 0 ? 'Beginn ' : 'Ankunft ') + bName(a.baustelle)), locEl(a.locEnde, (i === absL.length - 1 ? 'Feierabend ' : 'Abfahrt ') + bName(a.baustelle))].forEach(l => l && it.append(l)); });
+  else [locEl(x.locStart, 'Beginn'), locEl(x.locEnde, 'Feierabend')].forEach(l => l && it.append(l));
+  if (x.offline) it.append(el('div', 'meta', 'Offline gestempelt (Zeit vom Handy)'));
+  if (x.nachgetragen) it.append(el('div', 'meta red', 'Vom Chef nachgetragen / korrigiert'));
+  if (chef && x.verlauf && x.verlauf.length) it.append(el('div', 'meta', 'Verlauf: ' + x.verlauf.map(v => fmtT(v.am) + ' ' + v.was + ' (' + v.von + ')').join(' · ')));
+  return it;
+}
+function renderZeit() {
+  if (isChef()) return; const L = $('l-zeit'); L.innerHTML = '';
+  const lim = new Date(); lim.setDate(lim.getDate() - 14); const r = meineTage().filter(x => x.datum >= isoD(lim));
+  if (!r.length) { L.append(el('div', 'empty', 'Noch keine Einträge.')); return; }
+  let tot = 0; r.forEach(x => { if (x.total != null && x.bis) tot += x.total; });
+  const s = el('div', 'item'); const tp = el('div', 'top'); tp.append(el('strong', '', 'Total 14 Tage'), el('strong', '', std(tot) + ' Std.')); s.append(tp); L.append(s);
+  r.forEach(x => L.append(tagItem(x, false)));
+}
+
+/* ====== Fotos ====== */
+let fFiles = []; seg('f-typ');
+function thumbs() { const t = $('f-thumbs'); t.innerHTML = ''; fFiles.forEach((f, i) => { const w = el('div'); const im = el('img'); im.src = URL.createObjectURL(f); im.alt = 'Foto'; const b = el('button', '', '×'); b.type = 'button'; b.setAttribute('aria-label', 'Foto entfernen'); b.onclick = () => { fFiles.splice(i, 1); thumbs(); }; w.append(im, b); t.append(w); }); }
+$('f-files').onchange = e => { fFiles.push(...e.target.files); e.target.value = ''; thumbs(); };
+function jpegB64(file) { // verkleinern (max. 1600 px), JPEG 80 %
+  return new Promise((ok, no) => { const img = new Image(); const u = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, 1600 / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); ok(c.toDataURL('image/jpeg', .8).split(',')[1]); };
+    img.onerror = () => no(new Error('Foto kann nicht gelesen werden')); img.src = u; });
+}
+$('f-send').onclick = async () => {
+  if (!bau()) { msg('m-fotos', 'Bitte oben die Baustelle wählen.', 'err'); return; } if (!fFiles.length) { msg('m-fotos', 'Bitte zuerst Fotos aufnehmen.', 'err'); return; }
+  $('f-send').disabled = true;
+  try { msg('m-fotos', 'Fotos werden vorbereitet …'); const bilder = []; for (const f of fFiles) bilder.push(await jpegB64(f));
+    msg('m-fotos', 'Wird gesendet …');
+    const r = await senden('fotoSenden', { baustelle: bau(), typ: segVal('f-typ'), pendenzNr: $('f-nr').value.trim(), bereich: $('f-bereich').value.trim(), text: $('f-text').value.trim(), bilder }, { offline: true });
+    fFiles = []; thumbs(); $('f-text').value = ''; $('f-nr').value = ''; msg('m-fotos', r.queued ? 'Gespeichert – Fotos werden bei Empfang gesendet.' : 'Fotos gesendet. Danke!', 'ok'); if (!r.queued) laden(); }
+  catch (e) { msg('m-fotos', e.message + ' – Fotos bleiben ausgewählt.', 'err'); }
+  $('f-send').disabled = false;
+};
+function imgs(list, cls) { const g = el('div', 'imgs' + (cls ? ' ' + cls : '')); (list || []).forEach(f => { const b = el('button', 'pic'); b.type = 'button'; b.setAttribute('aria-label', 'Foto gross anzeigen'); const im = el('img'); im.src = thumb(f.id); im.alt = 'Foto'; im.loading = 'lazy'; b.append(im); b.onclick = () => { $('lb-img').src = thumb(f.id); $('lb').hidden = false; }; g.append(b); }); return g; }
+$('lb-x').onclick = () => { $('lb').hidden = true; };
+function renderFotos() {
+  const L = $('l-fotos'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', 'Oben die Baustelle wählen.')); return; }
+  const r = (D && D.fotos || []).filter(x => x.baustelle === bau()).sort((a, b) => b.erstellt - a.erstellt).slice(0, 40);
+  if (!r.length) { L.append(el('div', 'empty', 'Noch keine Fotos für diese Baustelle.')); return; }
+  r.forEach(x => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('div', '', ({ vorher: 'Vorher', nachher: 'Nachher' }[x.typ] || 'Allgemein') + (x.pendenzNr ? ' · Nr. ' + x.pendenzNr : '') + (x.bereich ? ' · ' + x.bereich : '')), el('span', 'meta', fmtT(x.erstellt))); it.append(top); if (x.text) it.append(el('div', 'txt', x.text)); it.append(imgs(x.fotos), el('div', 'meta', x.monteur || '')); L.append(it); });
+}
+
+/* ====== Pendenzen ====== */
+let pFilter = 'offen', pZiel = null; seg('p-filter', v => { pFilter = v; renderPend(); });
+const pLab = { offen: 'Offen', gemeldet: 'Gemeldet – Kontrolle', erledigt: 'Erledigt' };
+function renderPend() {
+  const L = $('l-pend'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', 'Oben die Baustelle wählen.')); return; }
+  const gemeldet = new Set(wartend.filter(w => w.action === 'pendenzMelden').map(w => w.data.id));
+  const all = (D && D.pendenzen || []).filter(x => x.baustelle === bau()).map(x => gemeldet.has(x.id) && x.status === 'offen' ? Object.assign({}, x, { status: 'gemeldet', _wartet: true }) : x).sort((a, b) => (+a.nr || 0) - (+b.nr || 0));
+  const r = pFilter === 'offen' ? all.filter(x => x.status !== 'erledigt') : all;
+  const s = el('div', 'item'); const tp = el('div', 'top'); tp.append(el('strong', '', 'Noch offen'), el('strong', '', all.filter(x => x.status !== 'erledigt').length + ' von ' + all.length)); s.append(tp); L.append(s);
+  if (!r.length) { L.append(el('div', 'empty', pFilter === 'offen' ? 'Keine offenen Pendenzen. 👍' : 'Keine Pendenzen für diese Baustelle.')); return; }
+  r.forEach(x => {
+    const it = el('div', 'item' + (x.status === 'erledigt' ? ' done' : '')); const top = el('div', 'top'); const l = el('div', 'row'); l.append(el('span', 'nr', x.nr), el('span', 'meta', x.bereich || ''));
+    top.append(l, el('span', 'chip c-' + x.status, x._wartet ? 'wird gesendet' : pLab[x.status])); it.append(top, el('div', 'txt', x.text));
+    if (x.bilder && x.bilder.length) it.append(el('div', 'lbl', '📌 So sieht es aus / was zu tun ist'), imgs(x.bilder, 'big2'));
+    if (x.fotos && x.fotos.length) it.append(el('div', 'lbl ok', '✓ Foto erledigt'), imgs(x.fotos));
+    if (x.gemeldetVon) it.append(el('div', 'meta', 'Gemeldet: ' + x.gemeldetVon + (x.gemeldetAm ? ' · ' + fmtT(x.gemeldetAm) : '')));
+    const row = el('div', 'row');
+    if (x.status === 'offen' && !isChef()) { const b = el('button', 'ghost small', '✓ Erledigt melden + Foto'); b.type = 'button'; b.onclick = () => { pZiel = x; $('p-file').click(); }; const b2 = el('button', 'ghost small', 'Ohne Foto melden'); b2.type = 'button'; b2.onclick = () => melden(x, []); row.append(b, b2); }
+    if (isChef() && x.status === 'gemeldet' && !x._wartet) { const b = el('button', 'ghost small', 'Kontrolliert ✓'); b.type = 'button'; b.onclick = () => chefAkt('pendenzKontrolle', { id: x.id, ok: true }, 'm-pend'); const b2 = el('button', 'ghost small', 'Zurück auf offen'); b2.type = 'button'; b2.onclick = () => chefAkt('pendenzKontrolle', { id: x.id, ok: false }, 'm-pend'); row.append(b, b2); }
+    if (row.childNodes.length) it.append(row); L.append(it);
+  });
+}
+async function melden(x, files) {
+  try { msg('m-pend', 'Wird gesendet …'); const bilder = []; for (const f of files) bilder.push(await jpegB64(f));
+    const r = await senden('pendenzMelden', { id: x.id, bilder }, { offline: true }); msg('m-pend', r.queued ? 'Nr. ' + x.nr + ' gespeichert – wird bei Empfang gesendet.' : 'Nr. ' + x.nr + ' als erledigt gemeldet.', 'ok'); if (!r.queued) await laden(); }
+  catch (e) { msg('m-pend', e.message, 'err'); } render();
+}
+$('p-file').onchange = e => { const f = [...e.target.files]; e.target.value = ''; if (pZiel && f.length) melden(pZiel, f); pZiel = null; };
+
+/* ====== Material ====== */
+$('m-send').onclick = async () => {
+  if (!bau()) { msg('m-mat', 'Bitte oben die Baustelle wählen.', 'err'); return; } if (!$('m-artikel').value.trim()) { msg('m-mat', 'Bitte Material angeben.', 'err'); return; }
+  try { const r = await senden('materialBestellen', { baustelle: bau(), artikel: $('m-artikel').value.trim(), menge: $('m-menge').value.trim(), einheit: $('m-einheit').value, bis: $('m-bis').value, text: $('m-text').value.trim() }, { offline: true });
+    ['m-artikel', 'm-menge', 'm-text'].forEach(i => $(i).value = ''); msg('m-mat', r.queued ? 'Gespeichert – wird bei Empfang gesendet.' : 'Bestellung gesendet.', 'ok'); if (!r.queued) laden(); }
+  catch (e) { msg('m-mat', e.message, 'err'); }
+};
+const mLab = { neu: 'Neu', bestellt: 'Bestellt', geliefert: 'Geliefert' };
+function renderMat() {
+  const L = $('l-mat'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', 'Oben die Baustelle wählen.')); return; }
+  const r = (D && D.material || []).filter(x => x.baustelle === bau()).sort((a, b) => b.erstellt - a.erstellt).slice(0, 40);
+  if (!r.length) { L.append(el('div', 'empty', 'Noch keine Bestellungen.')); return; }
+  r.forEach(x => { const st = x.status || 'neu'; const it = el('div', 'item' + (st === 'geliefert' ? ' done' : '')); const top = el('div', 'top');
+    top.append(el('div', '', (x.menge ? x.menge + ' ' + x.einheit + ' · ' : '') + x.artikel), el('span', 'chip c-' + st, mLab[st])); it.append(top, el('div', 'meta', (x.monteur || '') + ' · ' + fmtT(+x.erstellt) + (x.bis && x.bis !== 'normal' ? ' · ' + x.bis.toUpperCase() : ''))); if (x.text) it.append(el('div', 'txt', x.text));
+    if (isChef() && st !== 'geliefert') { const nx = st === 'bestellt' ? 'geliefert' : 'bestellt'; const b = el('button', 'ghost small', '→ ' + mLab[nx]); b.type = 'button'; b.onclick = () => chefAkt('materialStatus', { id: x.id, status: nx }, 'm-mat'); const row = el('div', 'row'); row.append(b); it.append(row); }
+    L.append(it); });
+}
+
+/* ====== Chef ====== */
+async function chefAkt(a, d, m) { try { msg(m, 'Wird gespeichert …'); await api(a, d); msg(m, 'Gespeichert.', 'ok'); await laden(); } catch (e) { msg(m, e instanceof NetzFehler ? 'Kein Empfang – bitte später.' : e.message, 'err'); } }
+function setRange(a, b) { $('c-von').value = isoD(a); $('c-bis').value = isoD(b); renderChef(); }
+const montag = d => { const m = new Date(d); m.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return m; };
+$('c-woche').onclick = () => { const m = montag(new Date()); const s = new Date(m); s.setDate(m.getDate() + 6); setRange(m, s); };
+$('c-vorwoche').onclick = () => { const m = montag(new Date()); m.setDate(m.getDate() - 7); const s = new Date(m); s.setDate(m.getDate() + 6); setRange(m, s); };
+$('c-monat').onclick = () => { const d = new Date(); setRange(new Date(d.getFullYear(), d.getMonth(), 1), new Date(d.getFullYear(), d.getMonth() + 1, 0)); };
+$('c-vormonat').onclick = () => { const d = new Date(); setRange(new Date(d.getFullYear(), d.getMonth() - 1, 1), new Date(d.getFullYear(), d.getMonth(), 0)); };
+['c-von', 'c-bis'].forEach(i => $(i).onchange = async () => { if ($('c-von').value < vor40()) { try { const j = await api('chefRapporte', { von: $('c-von').value, bis: $('c-bis').value }); D.rapporteAlt = j.rapporte; } catch (e) {} } renderChef(); });
+const vor40 = () => { const d = new Date(); d.setDate(d.getDate() - 39); return isoD(d); };
+function chefRap() { if (!D) return []; const a = $('c-von').value, b = $('c-bis').value; const src = (D.rapporteAlt && a < vor40()) ? D.rapporteAlt : (D.rapporte || []); return src.filter(x => (!a || x.datum >= a) && (!b || x.datum <= b)); }
+function renderChef() {
+  if (!isChef() || !D) return;
+  const r = chefRap().sort((x, y) => (x.monteurName || '').localeCompare(y.monteurName || '') || x.datum.localeCompare(y.datum));
+  const t = $('c-sum'); t.innerHTML = ''; const hd = el('tr'); ['Monteur', 'Tage', 'Arbeitszeit', 'Weg H+R', 'Abzug', 'Zwischenf.', 'Abwesend', 'Offen', 'Total'].forEach(h => hd.append(el('th', '', h))); t.append(hd);
+  const by = {}; r.forEach(x => { const k = x.monteurName; by[k] = by[k] || { d: 0, a: 0, f: 0, g: 0, z: 0, t: 0, ab: 0, of: 0 }; const o = by[k];
+    if (x.status !== 'arbeit') o.ab++; else if (!x.bis) o.of++; else { o.d++; o.a += x.arbeitNetto || 0; o.f += x.fahrt || 0; o.g += x.abzug || 0; o.z += x.zwischen || 0; o.t += x.total || 0; } });
+  Object.keys(by).sort().forEach(k => { const o = by[k]; const tr = el('tr'); [k, o.d, std(o.a) + ' Std.', mins(o.f), mins(-o.g), mins(o.z), o.ab, o.of, std(o.t) + ' Std.'].forEach(v => tr.append(el('td', '', String(v)))); t.append(tr); });
+  if (!r.length) { const tr = el('tr'); const td = el('td', '', 'Keine Einträge in diesem Zeitraum.'); td.colSpan = 9; tr.append(td); t.append(tr); }
+  const L = $('c-rap'); L.innerHTML = ''; r.slice().sort((a, b) => b.datum.localeCompare(a.datum)).slice(0, 80).forEach(x => L.append(tagItem(x, true)));
+  const mons = (D.monteure || []).slice().sort((a, b) => a.name.localeCompare(b.name)), baus = (D.baustellen || []).slice().sort((a, b) => (a.sort || 99) - (b.sort || 99));
+  [['sn-m', mons, 'Alle'], ['n-mon', mons, null], ['sn-b', baus, 'Alle'], ['n-bau', baus, null]].forEach(([id, list, alle]) => { const s = $(id), c = s.value; s.length = 0; if (alle) s.append(new Option(alle, '')); list.forEach(x => s.append(new Option(x.name, x.id))); if ([...s.options].some(o => o.value === c)) s.value = c; });
+  const M = $('c-mont'); M.innerHTML = '';
+  mons.forEach(m => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('strong', '', m.name), el('span', 'chip ' + (m.aktiv ? 'c-ok' : 'c-offen'), m.aktiv ? 'Aktiv' : 'Gesperrt')); it.append(top);
+    const w = el('input'); w.value = m.wohnort || ''; w.placeholder = 'Wohnadresse'; w.setAttribute('aria-label', 'Wohnadresse ' + m.name); it.append(w);
+    const row = el('div', 'row'); const b = el('button', 'ghost small', m.aktiv ? 'Sperren' : 'Freischalten'); b.type = 'button'; b.onclick = () => { if (confirm((m.aktiv ? 'Sperren: ' : 'Freischalten: ') + m.name + '?')) chefAkt('monteurSetzen', { id: m.id, aktiv: !m.aktiv }, 'm-mont'); };
+    const pin = el('input', 'pin'); pin.style.maxWidth = '120px'; pin.inputMode = 'numeric'; pin.maxLength = 4; pin.value = m.pin || ''; pin.setAttribute('aria-label', 'PIN ' + m.name);
+    const sv = el('button', 'ghost small', 'Speichern'); sv.type = 'button'; sv.onclick = () => { const d = { id: m.id }; if (pin.value !== (m.pin || '')) { if (!/^\d{4}$/.test(pin.value)) { msg('m-mont', 'PIN: 4 Ziffern.', 'err'); return; } d.pin = pin.value; } if (w.value.trim() !== (m.wohnort || '')) d.wohnort = w.value.trim(); chefAkt('monteurSetzen', d, 'm-mont'); };
+    row.append(b, pin, sv); it.append(row); if (!m.pin) it.append(el('div', 'meta red', 'Noch keine PIN – kann sich nicht anmelden')); M.append(it); });
+  const B = $('c-bau'); B.innerHTML = '';
+  baus.forEach(bz => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('strong', '', bz.name), el('span', 'chip ' + (bz.adresse ? (bz.lat != null ? 'c-ok' : 'c-neu') : 'c-offen'), bz.adresse ? (bz.lat != null ? 'Adresse + Standort ✓' : 'Standort fehlt') : 'Adresse fehlt')); it.append(top);
+    const a = el('input'); a.value = bz.adresse || ''; a.placeholder = 'Adresse (Strasse Nr, PLZ Ort)'; const ag = el('input'); ag.value = bz.auftraggeber || ''; ag.placeholder = 'Auftraggeber';
+    const row = el('div', 'row'); const sv = el('button', 'ghost small', 'Speichern'); sv.type = 'button'; sv.onclick = () => chefAkt('baustelleSetzen', { id: bz.id, adresse: a.value.trim(), auftraggeber: ag.value.trim() }, 'm-bau');
+    const hier = el('button', 'ghost small', '📍 Mein Standort = Baustelle'); hier.type = 'button'; hier.onclick = async () => { const l = await standort(); if (l.fehler) { msg('m-bau', l.fehler, 'err'); return; } if (confirm('Standort von ' + bz.name + ' auf deinen jetzigen Standort setzen (Genauigkeit ' + l.acc + ' m)?')) chefAkt('baustelleSetzen', { id: bz.id, lat: l.lat, lng: l.lng }, 'm-bau'); };
+    const aus = el('button', 'ghost small', 'Ausblenden'); aus.type = 'button'; aus.onclick = () => { if (confirm(bz.name + ' für Monteure ausblenden?')) chefAkt('baustelleSetzen', { id: bz.id, aktiv: false }, 'm-bau'); };
+    row.append(sv, hier, aus); it.append(a, ag, row); B.append(it); });
+  const F = $('c-fz'); F.innerHTML = ''; const fh = el('tr'); ['Monteur → Baustelle', 'ab', 'Hin', 'Retour', 'Quelle'].forEach(h => fh.append(el('th', '', h))); F.append(fh);
+  (D.fahrzeiten || []).forEach(f => { const tr = el('tr'); [(mons.find(m => m.id === f.monteur) || {}).name + ' → ' + bName(f.baustelle), f.ab, f.hin + ' Min.', f.retour + ' Min.', f.quelle].forEach(v => tr.append(el('td', '', String(v || '')))); F.append(tr); });
+}
+$('fz-neu').onclick = async () => { msg('m-fz', 'Google Maps rechnet … (kann 1 Min. dauern)'); try { const j = await api('fahrzeitNeu', {}); msg('m-fz', j.berechnet + ' Fahrzeiten berechnet.' + (j.fehler.length ? ' Fehlt: ' + j.fehler.join('; ') : ''), j.fehler.length ? 'err' : 'ok'); laden(); } catch (e) { msg('m-fz', e.message, 'err'); } };
+$('nm-save').onclick = () => chefAkt('monteurNeu', { name: $('nm-name').value.trim(), pin: $('nm-pin').value.trim(), wohnort: $('nm-wohn').value.trim() }, 'm-mont');
+$('nb-save').onclick = () => chefAkt('baustelleSetzen', { name: $('nb-name').value.trim(), adresse: $('nb-adr').value.trim(), auftraggeber: $('nb-ag').value.trim() }, 'm-bau');
+$('c-pinsave').onclick = () => { const p = $('c-newpin').value.trim(); if (!/^\d{4}$/.test(p)) { msg('m-cpin', '4 Ziffern eingeben.', 'err'); return; } chefAkt('chefPin', { pin: p }, 'm-cpin'); $('c-newpin').value = ''; };
+seg('n-pause'); $('n-datum').value = today();
+$('n-status').onchange = () => { $('n-arb').hidden = $('n-status').value !== 'arbeit'; };
+$('n-save').onclick = () => { const st = $('n-status').value, d = { monteur: $('n-mon').value, datum: $('n-datum').value, status: st };
+  if (st === 'arbeit') { Object.assign(d, { baustelle: $('n-bau').value, von: $('n-von').value, bis: $('n-bis').value, pause: segVal('n-pause') == null ? null : +segVal('n-pause'), arbeit: $('n-text').value.trim() }); if (d.pause == null) { msg('m-nach', 'Pause wählen.', 'err'); return; } if (!d.von || !d.bis) { msg('m-nach', 'Von/Bis eingeben.', 'err'); return; } }
+  if (!confirm('Eintrag für ' + $('n-mon').selectedOptions[0].text + ' am ' + dd(d.datum) + ' speichern? Wird als «nachgetragen» vermerkt.')) return; chefAkt('nachtragen', d, 'm-nach'); };
+
+/* ====== Stundennachweis (druckfreundlich) ====== */
+function kw(s) { const d = new Date(s + 'T12:00:00'); const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const n = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - n); const y = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - y) / 864e5 + 1) / 7); }
+// Tag → Zeilen pro Baustelle. Verteilung (Summe der Zeilen = Tagestotal, nachgerechnet):
+//  Pause → Abschnitt mit der längsten Arbeitszeit · Arbeitsweg hin → erste Zeile, retour → letzte Zeile
+//  Abzug −30 (einmal pro Tag) → letzte Zeile · Zwischenfahrt → Zeile der Baustelle, auf die gefahren wurde
+function tagZeilen(x) {
+  const abs = x.abschnitte && x.abschnitte.length ? x.abschnitte : [{ baustelle: x.baustelle, von: x.von, bis: x.bis, locStart: x.locStart, locEnde: x.locEnde }];
+  const d = abs.map(dauer); let pi = 0; d.forEach((v, i) => { if (v > d[pi]) pi = i; });
+  const fehlt = x.ab === 'FEHLT' || x.fahrt == null;
+  return abs.map((a, i) => {
+    const pause = i === pi ? (x.pause || 0) : 0, arbeit = Math.max(0, d[i] - pause);
+    const weg = fehlt ? null : (i === 0 ? x.hin : 0) + (i === abs.length - 1 ? x.retour : 0);
+    const abzug = fehlt ? null : (i === abs.length - 1 ? x.abzug : 0);
+    const z = i > 0 && x.zwischenDetail && x.zwischenDetail[i - 1] ? x.zwischenDetail[i - 1].bez : 0;
+    return { x, a, i, n: abs.length, pause, arbeit, weg, abzug, zw: z == null ? null : z, total: arbeit + (weg || 0) - (abzug || 0) + (z || 0) };
+  });
+}
+$('sn-open').onclick = () => {
+  const a = $('c-von').value, b = $('c-bis').value, mf = $('sn-m').value, bf = $('sn-b').value;
+  const tage = chefRap().filter(x => x.status === 'arbeit' && x.bis && (!mf || x.monteur === mf)).sort((x, y) => x.datum.localeCompare(y.datum) || (x.monteurName || '').localeCompare(y.monteurName || ''));
+  let zeilen = []; tage.forEach(x => { zeilen = zeilen.concat(tagZeilen(x)); });
+  if (bf) zeilen = zeilen.filter(z => z.a.baustelle === bf);
+  // Kontrolle: Zeilensumme pro Tag = Tagestotal (nur ohne Baustellen-Filter vollständig)
+  if (!bf) { const fehler = tage.filter(x => Math.abs(tagZeilen(x).reduce((s, z) => s + z.total, 0) - (x.total || 0)) > 0.01); if (fehler.length) alert('Achtung: Rechenkontrolle stimmt nicht bei ' + fehler.map(x => x.monteurName + ' ' + dd(x.datum)).join(', ') + ' – bitte Claude melden.'); }
+  const P = $('sn-page'); P.innerHTML = '';
+  const head = el('div', 'sn-head'); const l = el('div'); l.append(el('h3', '', 'ZEITERFASSUNG / STUNDENNACHWEIS'), el('div', 's', 'Erstellt am: ' + dd(today()) + ' | Arbeitszeitprotokoll'));
+  const lg = el('img'); lg.src = 'logo.png'; lg.alt = 'ASN Isolierungen'; const ad = el('div', 'adr'); ad.append(el('div', '', 'Aussteller:'), el('b', '', 'ASN Isolierungen GmbH'), el('div', '', 'Roggenstrasse 3'), el('div', '', '4665 Oftringen')); head.append(l, lg, ad); P.append(head);
+  const k1 = a ? kw(a) : '', k2 = b ? kw(b) : '';
+  P.append(el('div', 'sn-title', (k1 && k1 === k2 ? 'KW ' + k1 + ': ' : '') + dd(a) + ' bis ' + dd(b) + (mf ? ' • Mitarbeiter: ' + $('sn-m').selectedOptions[0].text : '') + (bf ? ' • Baustelle: ' + bName(bf) : '')));
+  const S = { p: 0, w: 0, g: 0, z: 0, a: 0, t: 0 }; zeilen.forEach(z => { S.p += z.pause; S.w += z.weg || 0; S.g += z.abzug || 0; S.z += z.zw || 0; S.a += z.arbeit; S.t += z.total; });
+  const bx = el('div', 'sn-boxes'); bx.style.gridTemplateColumns = 'repeat(7,1fr)';
+  [['Anzahl Einträge', zeilen.length + ' Datensätze'], ['Gesamt-Pause', S.p + ' Min. (' + std(S.p) + ' h)'], ['Arbeitsweg total', S.w + ' Min. (' + std(S.w) + ' h)'], ['Abzug Weg (−30 Min.)', (S.g ? '−' : '') + S.g + ' Min. (' + std(S.g) + ' h)'], ['Zwischenfahrten', S.z + ' Min. (' + std(S.z) + ' h)'], ['Arbeitszeit netto', std(S.a) + ' Std.'], ['Total', std(S.t) + ' Std.']]
+    .forEach(([kk, v], i) => { const dv = el('div'); dv.append(el('span', '', kk), el('b', i === 3 ? 'or' : i === 6 ? 'bl' : '', v)); bx.append(dv); }); P.append(bx);
+  const t = el('table', 'sn-t'); const hr = el('tr');
+  [['Datum'], ['Mitarbeiter'], ['Auftraggeber'], ['Arbeitsort'], ['Zeit'], ['Pause', 'n'], ['Arbeitsweg (Hin- und Rückfahrt)', 'n'], ['Abzug (−30m)', 'n'], ['Zwischen­fahrt', 'n'], ['Arbeitszeit', 'n'], ['Notiz / Tätigkeiten'], ['Status'], ['Total', 'n']].forEach(([h, c]) => hr.append(el('th', c || '', h))); t.append(hr);
+  zeilen.forEach(z => { const x = z.x, bs = (D.baustellen || []).find(q => q.id === z.a.baustelle) || {}; const tr = el('tr'); const mt = el('td'); mt.append(el('strong', '', x.monteurName));
+    const st = el('td'); st.append(el('div', '', x.abgerechnet ? 'Abgerechnet' : 'Offen'));
+    [['Beginn', z.a.locStart || (z.i === 0 ? x.locStart : null)], ['Ende', z.a.locEnde || (z.i === z.n - 1 ? x.locEnde : null)]].forEach(([w, lo]) => { if (lo && lo.status === 'out') st.append(el('div', 'rd', '⚠ ' + w + ' ' + (lo.dist >= 1000 ? (lo.dist / 1000).toFixed(1) + ' km' : lo.dist + ' m') + ' entfernt')); });
+    if (x.nachgetragen) st.append(el('div', 'rd', 'nachgetragen')); if (x.ab === 'FEHLT') st.append(el('div', 'rd', 'Fahrzeit fehlt'));
+    const zwTxt = z.i === 0 ? '' : (z.zw == null ? 'fehlt' : z.zw + ' min');
+    tr.append(el('td', '', dd(x.datum)), mt, el('td', '', bs.auftraggeber || '–'), el('td', '', bs.adresse || bs.name || ''), el('td', '', z.a.von + '–' + z.a.bis),
+      el('td', 'n', z.pause + ' min'), el('td', 'n', z.weg == null ? 'fehlt' : z.weg + ' min'), el('td', 'n or', z.abzug ? '−' + z.abzug + ' min' : '0 min'), el('td', 'n', zwTxt),
+      el('td', 'n', std(z.arbeit) + ' h'), el('td', '', z.i === z.n - 1 ? (x.arbeit || '-') : ''), st, el('td', 'n bl', std(z.total) + ' h'));
+    t.append(tr); });
+  if (!zeilen.length) { const tr = el('tr'); const td = el('td', '', 'Keine Arbeitstage in diesem Zeitraum.'); td.colSpan = 13; tr.append(td); t.append(tr); }
+  const sr = el('tr', 'sum'); const g = el('td', 'n', 'Gesamtsumme:'); g.colSpan = 5;
+  sr.append(g, el('td', 'n', S.p + ' min'), el('td', 'n', S.w + ' min'), el('td', 'n or', (S.g ? '−' : '') + S.g + ' min'), el('td', 'n', S.z + ' min'), el('td', 'n', std(S.a) + ' h'), el('td', ''), el('td', ''), el('td', 'n bl', std(S.t) + ' h')); t.append(sr);
+  P.append(t, el('div', 'sn-calc', 'Berechnung: Arbeitszeit netto (Pause abgezogen) + Arbeitsweg Hin- und Rückfahrt − Abzug 30 Min. pro Arbeitstag (höchstens so viel wie gefahren, nie Minus) + Zwischenfahrten zwischen Baustellen (voll bezahlt) = Total. Arbeitsweg ab Wohnort oder Lager Oftringen, je nachdem was kürzer ist (Google Maps).'));
+  const sig = el('div', 'sn-sig'); sig.append(el('span', ''), el('div', '', 'Datum, Unterschrift Auftraggeber / Bauleiter')); P.append(sig, el('div', 'sn-foot', 'ASN Isolierungen GmbH • Roggenstrasse 3, 4665 Oftringen'));
+  $('sn').hidden = false; window.scrollTo(0, 0);
+};
+$('sn-close').onclick = () => { $('sn').hidden = true; }; $('sn-print').onclick = () => window.print();
+
+/* ====== Anzeige ====== */
+function render() {
+  if (!sess) return; fillBau(); netUI();
+  if (isChef()) { renderChef(); } else { renderStempel(); renderZeit(); }
+  renderFotos(); renderPend(); renderMat();
+  const t = lsGet('asn-tab', 'zeit'); $('bs-wrap').hidden = t === 'chef' || (t === 'zeit' && hatOffenenTag());
+}
+
+/* ====== Start ====== */
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+$('c-woche').click();
+zeige(); if (sess) laden();
+qLoad().then(() => { if (sess) { flush(); render(); } });
+setInterval(() => { if (sess && navigator.onLine && !document.hidden) laden(); }, 120000);
+</script>
+</body>
+</html>
