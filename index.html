@@ -122,12 +122,17 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
 .matrow input[type=checkbox]{width:24px;height:24px;flex:0 0 24px;margin:0}.matrow input.mq{width:110px;flex:0 0 110px}
 .matinfo{font-size:13px;background:#fff6e5;border-radius:8px;padding:6px 8px}
 .item.gelb{background:#fff6c7;border-color:#e3b800}
+.item.gruen{background:#e7f6eb;border:2px solid #2e9d4f}
+.item.blink{animation:blink 2.4s ease}@keyframes blink{0%,100%{box-shadow:0 0 0 0 rgba(46,157,79,0)}25%,75%{box-shadow:0 0 0 6px rgba(46,157,79,.55)}}
+.geprueft{font-size:13px;font-weight:700;color:#1d7a3e}
+#c-sum tr.klick{cursor:pointer}#c-sum tr.klick:hover td{text-decoration:underline}#c-sum tr.aktiv td{font-weight:700}
 .auf{font-size:13px;font-weight:700;color:var(--muted,#5d6b79)}.auf.regie{color:#b45f00}
 .sn-t tr.sum td{font-weight:700;border-top:1.5px solid #14212e;border-bottom:1.5px solid #14212e}
 .or{color:#c0560b}.bl{color:#1d3fa8;font-weight:700}.rd{color:#b42318;font-weight:700}
 .sn-sig{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:70px;font-size:11px;color:#5d6b79}
 .sn-sig div{border-top:1px dashed #5d6b79;padding-top:6px}
 .sn-foot{text-align:right;font-size:10px;color:#5d6b79;margin-top:30px}.sn-calc{font-size:11px;margin-top:8px}
+@media print{body.nurchef-druck>*{display:none!important}body.nurchef-druck::before{content:'Drucken nur durch ASN Isolierungen GmbH (Jehon Avdiu).';display:block;font:16px Arial;padding:20mm}}
 @media print{@page{size:A4 landscape;margin:10mm}body{background:#fff;padding:0}body>*:not(#sn){display:none!important}
   #sn{position:static;padding:0;background:#fff;overflow:visible}.sn-bar{display:none}.sn-page{max-width:none;padding:0}}
 </style>
@@ -262,6 +267,7 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
           <div class="scroll"><table class="wk" id="c-sum"></table></div>
           <div class="grid2"><div><label for="sn-m">Mitarbeiter</label><select id="sn-m"><option value="">Alle</option></select></div><div><label for="sn-b">Baustelle</label><select id="sn-b"><option value="">Alle</option></select></div></div>
           <button class="primary" type="button" id="sn-open">📄 Stundennachweis anzeigen / drucken</button>
+          <div class="msg" id="m-chefliste" role="status"></div>
           <div class="list" id="c-rap"></div>
         </div>
         <div class="card">
@@ -412,7 +418,7 @@ async function namenLaden() {
   try { const j = await api('namen', {}); liste = j.monteure; lsSet('asn-namen', liste); } catch (e) { if (!liste.length) msg('m-login', e.message, 'err'); }
   const cur = s.value; s.length = 1; liste.forEach(m => s.append(new Option(m.name, m.id))); s.value = cur;
 }
-$('l-chef').onclick = () => { chefMode = !chefMode; $('l-name-wrap').hidden = chefMode; $('l-chef').textContent = chefMode ? 'Monteur-Anmeldung' : 'Jehon Avdiu'; msg('m-login', chefMode ? 'Chef-PIN eingeben.' : ''); };
+$('l-chef').onclick = () => { chefMode = !chefMode; $('l-name-wrap').hidden = chefMode; $('l-chef').textContent = chefMode ? 'Monteur-Anmeldung' : 'Jehon Avdiu'; msg('m-login', chefMode ? 'PIN Jehon Avdiu eingeben.' : ''); };
 $('l-go').onclick = async () => {
   const pin = $('l-pin').value.trim(); if (!/^\d{4}$/.test(pin)) { msg('m-login', t('pinFalsch'), 'err'); return; }
   $('l-go').disabled = true; msg('m-login', 'Anmelden …');
@@ -435,7 +441,7 @@ function zeige() {
   $('tab-chef').hidden = !isChef();
   LANG = isChef() ? 'de' : autoSprache(); i18nAnwenden(); try { if (!$('f-mat-liste').querySelector(':checked')) matAufbauen(); } catch (e) { /* beim ersten Laden noch nicht bereit – wird unten aufgebaut */ }
   if (!sess) { namenLaden(); installHinweis(); return; }
-  $('h-name').textContent = sess.name + (isChef() ? ' (Chef)' : '');
+  $('h-name').textContent = isChef() ? 'Jehon Avdiu' : sess.name;
   if (isChef() && lsGet('asn-tab', '') === 'zeit') tab('chef'); else tab(lsGet('asn-tab', isChef() ? 'chef' : 'zeit'));
   render();
 }
@@ -619,13 +625,16 @@ function korrigieren(x) {
   setSeg('n-auftrag', abs[0].auftrag || ''); setSeg('n-auftrag2', abs[1] ? abs[1].auftrag || '' : '');
   msg('m-nach', 'Eintrag von ' + x.monteurName + ' am ' + dd(x.datum) + ' geladen – ändern und Speichern tippen.', 'ok'); $('n-mon').closest('.card').scrollIntoView({ behavior: 'smooth' });
 }
+function fmtGeprueft(s) { const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(s || '')); return m ? m[3] + '.' + m[2] + '. ' + m[4] + ':' + m[5] : ''; }
 function setSeg(id, v) { $(id).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); }
 function tagItem(x, chef) {
   const it = el('div', 'item'); const top = el('div', 'top');
   const chip = x._wartet ? ['c-wartet', t('wirdGesendet')] : x.status !== 'arbeit' ? ['c-abw', tg(x.status)] : !x.bis ? (x.datum < today() ? ['c-offen', t('offen')] : ['c-neu', t('laeuft')]) : ['c-ok', std(x.total) + ' h'];
   top.append(el('div', '', (chef ? (x.monteurName || '') + ' · ' : '') + wdD(x.datum) + (x.baustelle ? ' · ' + bName(x.baustelle) : '')), el('span', 'chip ' + chip[0], chip[1])); it.append(top);
   if (x.status === 'arbeit') { const aufs = [...new Set((x.abschnitte || []).map(a => a.auftrag).filter(Boolean))]; if (aufs.length) it.append(el('div', 'auf' + (aufs.includes('regie') ? ' regie' : ''), t('auftrag') + ': ' + aufs.map(aufTxt).join(' + '))); }
-  if (chef && isChef() && tagRegieHinweis(x)) { it.classList.add('gelb'); it.append(el('div', 'meta red', '⚠ Auftrag «Normal» gewählt, aber in der Notiz steht «Regie» – bitte prüfen')); }
+  it.dataset.id = x.id || '';
+  if (chef && isChef() && x.geprueft) { it.classList.add('gruen'); it.append(el('div', 'geprueft', '✅ Vom Chef geprüft (' + fmtGeprueft(x.geprueft) + ')')); }
+  if (chef && isChef() && tagRegieHinweis(x) && !x.geprueft) { it.classList.add('gelb'); it.append(el('div', 'meta red', '⚠ Auftrag «Normal» gewählt, aber in der Notiz steht «Regie» – bitte prüfen')); }
   if (x.status === 'arbeit' && !x.bis) it.append(x.datum < today() ? el('div', 'loc out', t('feierabendFehlt') + ' (' + x.von + ')') : el('div', 'loc na', t('laeuftSeit') + ' ' + x.von));
   else if (x.status === 'arbeit' && x.total != null) { it.append(rpTable(x)); if (x.arbeit) { it.append(el('div', 'txt', (!isChef() && x.arbeitOriginal) || x.arbeit)); } }
   const absL = x.abschnitte && x.abschnitte.length > 1 ? x.abschnitte : null;
@@ -636,7 +645,9 @@ function tagItem(x, chef) {
   if (chef && x.verlauf && x.verlauf.length) it.append(el('div', 'meta', 'Verlauf: ' + x.verlauf.map(v => fmtT(v.am) + ' ' + v.was + ' (' + v.von + ')').join(' · ')));
   if (chef && isChef() && !x._wartet) { const row = el('div', 'row'); const k = el('button', 'ghost small', '✏️ Korrigieren'); k.type = 'button'; k.onclick = () => korrigieren(x); row.append(k);
     const locs = [x.locStart, x.locEnde].concat((x.abschnitte || []).reduce((a, s) => a.concat([s.locStart, s.locEnde]), [])).filter(Boolean);
-    if (locs.some(l => l.status === 'out' || l.status === 'na')) { const s = el('button', 'ghost small', '📍 Standort bestätigen'); s.type = 'button'; s.onclick = () => { if (confirm('Standort für ' + x.monteurName + ' am ' + dd(x.datum) + ' als in Ordnung bestätigen?')) chefAkt('standortBestaetigen', { id: x.id }, 'm-nach'); }; row.append(s); }
+    if (locs.some(l => l.status === 'out' || l.status === 'na')) { const s = el('button', 'ghost small', '📍 Standort bestätigen'); s.type = 'button'; s.onclick = () => { if (confirm('Standort für ' + x.monteurName + ' am ' + dd(x.datum) + ' als in Ordnung bestätigen?')) chefAkt('standortBestaetigen', { id: x.id }, 'm-chefliste'); }; row.append(s); }
+    if (x.status !== 'arbeit' || x.bis) { const sb = el('button', 'ghost small', x.geprueft ? '↩ Bestätigung aufheben' : '✅ Stunden bestätigen'); sb.type = 'button';
+      sb.onclick = () => { if (x.geprueft ? confirm('Bestätigung für ' + x.monteurName + ' am ' + dd(x.datum) + ' aufheben?') : true) chefAkt('stundenBestaetigen', { id: x.id, aus: !!x.geprueft }, 'm-chefliste'); }; row.append(sb); }
     it.append(row); }
   return it;
 }
@@ -745,7 +756,20 @@ function renderMat() {
 }
 
 /* ====== Chef ====== */
-async function chefAkt(a, d, m) { try { msg(m, 'Wird gespeichert …'); await api(a, d); msg(m, 'Gespeichert.', 'ok'); await laden(); } catch (e) { msg(m, e instanceof NetzFehler ? 'Kein Empfang – bitte später.' : e.message, 'err'); } }
+// Chef-Aktion speichern, danach Daten neu laden und SOFORT neu anzeigen (auch wenn noch ein Eingabefeld aktiv war).
+// Bei Tages-Aktionen: zum Tag springen und kurz grün aufleuchten lassen.
+async function chefAkt(a, d, m) {
+  try { msg(m, 'Wird gespeichert …'); await api(a, d);
+    const a0 = document.activeElement; if (a0 && a0.blur) a0.blur(); renderWartet = false;
+    await laden();
+    if (D && $('c-von').value < vor40()) { try { const j = await api('chefRapporte', { von: $('c-von').value, bis: $('c-bis').value }); D.rapporteAlt = j.rapporte; } catch (e) {} }
+    renderChef();
+    const tagId = ['nachtragen', 'standortBestaetigen', 'stundenBestaetigen'].includes(a) ? (d.id || (d.monteur + '_' + d.datum)) : null;
+    if (tagId) { const it = $('c-rap').querySelector('[data-id="' + tagId + '"]');
+      if (it) { it.scrollIntoView({ behavior: 'smooth', block: 'center' }); it.classList.add('blink'); setTimeout(() => it.classList.remove('blink'), 2500); msg(m, 'Gespeichert – siehe grün markierten Tag.', 'ok'); }
+      else msg(m, 'Gespeichert. Der Tag ist im gewählten Zeitraum/Filter nicht sichtbar – Zeitraum oder Mitarbeiter-Filter anpassen.', 'ok'); }
+    else msg(m, 'Gespeichert.', 'ok');
+  } catch (e) { msg(m, e instanceof NetzFehler ? 'Kein Empfang – bitte später.' : e.message, 'err'); } }
 function setRange(a, b) { $('c-von').value = isoD(a); $('c-bis').value = isoD(b); renderChef(); }
 const montag = d => { const m = new Date(d); m.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return m; };
 $('c-woche').onclick = () => { const m = montag(new Date()); const s = new Date(m); s.setDate(m.getDate() + 6); setRange(m, s); };
@@ -753,17 +777,25 @@ $('c-vorwoche').onclick = () => { const m = montag(new Date()); m.setDate(m.getD
 $('c-monat').onclick = () => { const d = new Date(); setRange(new Date(d.getFullYear(), d.getMonth(), 1), new Date(d.getFullYear(), d.getMonth() + 1, 0)); };
 $('c-vormonat').onclick = () => { const d = new Date(); setRange(new Date(d.getFullYear(), d.getMonth() - 1, 1), new Date(d.getFullYear(), d.getMonth(), 0)); };
 ['c-von', 'c-bis'].forEach(i => $(i).onchange = async () => { if ($('c-von').value < vor40()) { try { const j = await api('chefRapporte', { von: $('c-von').value, bis: $('c-bis').value }); D.rapporteAlt = j.rapporte; } catch (e) {} } renderChef(); });
+['sn-m', 'sn-b'].forEach(i => $(i).addEventListener('change', () => { $(i).blur(); renderWartet = false; renderChef(); }));
 const vor40 = () => { const d = new Date(); d.setDate(d.getDate() - 39); return isoD(d); };
 function chefRap() { if (!D) return []; const a = $('c-von').value, b = $('c-bis').value; const src = (D.rapporteAlt && a < vor40()) ? D.rapporteAlt : (D.rapporte || []); return src.filter(x => (!a || x.datum >= a) && (!b || x.datum <= b)); }
 function renderChef() {
   if (!isChef() || !D) return;
-  const r = chefRap().sort((x, y) => (x.monteurName || '').localeCompare(y.monteurName || '') || x.datum.localeCompare(y.datum));
-  const t = $('c-sum'); t.innerHTML = ''; const hd = el('tr'); ['Monteur', 'Tage', 'Arbeitszeit', 'Weg H+R', 'Abzug', 'Zwischenf.', 'Abwesend', 'Offen', 'davon Regie', 'Total'].forEach(h => hd.append(el('th', '', h))); t.append(hd);
-  const by = {}; r.forEach(x => { const k = x.monteurName; by[k] = by[k] || { d: 0, a: 0, f: 0, g: 0, z: 0, t: 0, ab: 0, of: 0, rg: 0, gelb: 0 }; const o = by[k];
+  // Filter Mitarbeiter / Baustelle gilt für Übersicht UND Liste (Jehon: nur der angeklickte Monteur)
+  const mf = $('sn-m').value, bf = $('sn-b').value;
+  const r = chefRap().filter(x => (!mf || x.monteur === mf) && (!bf || (x.abschnitte && x.abschnitte.length ? x.abschnitte.some(a => a.baustelle === bf) : x.baustelle === bf)))
+    .sort((x, y) => (x.monteurName || '').localeCompare(y.monteurName || '') || x.datum.localeCompare(y.datum));
+  const t = $('c-sum'); t.innerHTML = ''; const hd = el('tr'); ['Monteur', 'Tage', 'Arbeitszeit', 'Weg H+R', 'Abzug', 'Zwischenf.', 'Abwesend', 'Offen', 'davon Regie', 'Geprüft', 'Total'].forEach(h => hd.append(el('th', '', h))); t.append(hd);
+  const by = {}; r.forEach(x => { const k = x.monteurName; by[k] = by[k] || { id: x.monteur, d: 0, a: 0, f: 0, g: 0, z: 0, t: 0, ab: 0, of: 0, rg: 0, gelb: 0, gp: 0, n: 0 }; const o = by[k];
+    if (x.status !== 'arbeit' || x.bis) { o.n++; if (x.geprueft) o.gp++; }
     if (x.status !== 'arbeit') o.ab++; else if (!x.bis) o.of++; else { o.d++; o.a += x.arbeitNetto || 0; o.f += x.fahrt || 0; o.g += x.abzug || 0; o.z += x.zwischen || 0; o.t += x.total || 0;
-      tagZeilen(x).forEach(z => { if (z.a.auftrag === 'regie') o.rg += z.total; }); if (tagRegieHinweis(x)) o.gelb++; } });
-  Object.keys(by).sort().forEach(k => { const o = by[k]; const tr = el('tr'); if (o.gelb) tr.style.background = '#fff3b0'; [k + (o.gelb ? ' ⚠' : ''), o.d, std(o.a) + ' Std.', mins(o.f), mins(-o.g), mins(o.z), o.ab, o.of, std(o.rg) + ' Std.', std(o.t) + ' Std.'].forEach(v => tr.append(el('td', '', String(v)))); t.append(tr); });
-  if (!r.length) { const tr = el('tr'); const td = el('td', '', 'Keine Einträge in diesem Zeitraum.'); td.colSpan = 10; tr.append(td); t.append(tr); }
+      tagZeilen(x).forEach(z => { if (z.a.auftrag === 'regie') o.rg += z.total; }); if (tagRegieHinweis(x) && !x.geprueft) o.gelb++; } });
+  Object.keys(by).sort().forEach(k => { const o = by[k]; const tr = el('tr', 'klick' + (mf === o.id ? ' aktiv' : '')); if (o.n && o.gp === o.n) tr.style.background = '#e7f6eb'; else if (o.gelb) tr.style.background = '#fff3b0';
+    tr.title = mf === o.id ? 'Klicken: wieder alle Monteure zeigen' : 'Klicken: nur ' + k + ' zeigen';
+    tr.onclick = () => { $('sn-m').value = mf === o.id ? '' : o.id; renderChef(); };
+    [k + (o.gelb ? ' ⚠' : ''), o.d, std(o.a) + ' Std.', mins(o.f), mins(-o.g), mins(o.z), o.ab, o.of, std(o.rg) + ' Std.', o.gp + '/' + o.n + (o.n && o.gp === o.n ? ' ✅' : ''), std(o.t) + ' Std.'].forEach(v => tr.append(el('td', '', String(v)))); t.append(tr); });
+  if (!r.length) { const tr = el('tr'); const td = el('td', '', mf || bf ? 'Keine Einträge für diesen Filter im Zeitraum.' : 'Keine Einträge in diesem Zeitraum.'); td.colSpan = 11; tr.append(td); t.append(tr); }
   const L = $('c-rap'); L.innerHTML = ''; r.slice().sort((a, b) => b.datum.localeCompare(a.datum)).slice(0, 80).forEach(x => L.append(tagItem(x, true)));
   const mons = (D.monteure || []).slice().sort((a, b) => a.name.localeCompare(b.name)), baus = (D.baustellen || []).slice().sort((a, b) => (a.sort || 99) - (b.sort || 99));
   [['sn-m', mons, 'Alle'], ['n-mon', mons, null], ['sn-b', baus, 'Alle'], ['n-bau', baus, null], ['n-bau2', baus, '– keine –']].forEach(([id, list, alle]) => { const s = $(id), c = s.value; s.length = 0; if (alle) s.append(new Option(alle, '')); list.forEach(x => s.append(new Option(x.name, x.id))); if ([...s.options].some(o => o.value === c)) s.value = c; });
@@ -813,7 +845,7 @@ function tagZeilen(x) {
     return { x, a, i, n: abs.length, pause, arbeit, weg, abzug, zw: z == null ? null : z, total: arbeit + (weg || 0) - (abzug || 0) + (z || 0) };
   });
 }
-$('sn-open').onclick = () => {
+$('sn-open').onclick = () => { if (!isChef()) return; // Stundennachweis, Drucken, PDF, Excel: NUR Chef (Jehon)
   const a = $('c-von').value, b = $('c-bis').value, mf = $('sn-m').value, bf = $('sn-b').value;
   const tage = chefRap().filter(x => x.status === 'arbeit' && x.bis && (!mf || x.monteur === mf)).sort((x, y) => x.datum.localeCompare(y.datum) || (x.monteurName || '').localeCompare(y.monteurName || ''));
   let zeilen = []; tage.forEach(x => { zeilen = zeilen.concat(tagZeilen(x)); });
@@ -857,8 +889,8 @@ let SN = null;
 const LIB_PDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', LIB_AT = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js', LIB_XLS = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 function ladeSkript(src, ist) { return new Promise((ok, no) => { if (ist()) return ok(); const s = document.createElement('script'); s.src = src; s.onload = () => ist() ? ok() : no(new Error('Download-Programm nicht bereit.')); s.onerror = () => { s.remove(); no(new Error('Download-Programm konnte nicht geladen werden – Internet prüfen.')); }; document.head.append(s); }); }
 async function snKnopf(id, txt, fn) { const b = $(id), alt = b.textContent; if (b.disabled) return; b.disabled = true; b.textContent = txt; try { await fn(); } catch (e) { alert('Fehler: ' + (e && e.message || e)); } finally { b.disabled = false; b.textContent = alt; } }
-$('sn-close').onclick = () => { $('sn').hidden = true; }; $('sn-print').onclick = () => window.print();
-$('sn-pdf').onclick = () => snKnopf('sn-pdf', 'PDF wird erstellt …', async () => {
+$('sn-close').onclick = () => { $('sn').hidden = true; }; $('sn-print').onclick = () => { if (!isChef()) return; window.print(); };
+$('sn-pdf').onclick = () => isChef() && snKnopf('sn-pdf', 'PDF wird erstellt …', async () => {
   await ladeSkript(LIB_PDF, () => !!(window.jspdf && window.jspdf.jsPDF));
   await ladeSkript(LIB_AT, () => !!(window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable));
   const P = (s) => String(s == null ? '' : s).replace(/[−–—]/g, '-').replace(/•/g, '|').replace(/⚠\s?/g, '! ').replace(/[^\x00-\xFF€]/g, '');
@@ -904,7 +936,7 @@ $('sn-pdf').onclick = () => snKnopf('sn-pdf', 'PDF wird erstellt …', async () 
   doc.save(SN.datei + '.pdf');
 });
 function logoDaten() { return new Promise(ok => { const i = new Image(); i.onload = () => { try { const c = document.createElement('canvas'); c.width = i.naturalWidth; c.height = i.naturalHeight; c.getContext('2d').drawImage(i, 0, 0); ok({ d: c.toDataURL('image/png'), w: i.naturalWidth, h: i.naturalHeight }); } catch (e) { ok(null); } }; i.onerror = () => ok(null); i.src = 'logo.png'; }); }
-$('sn-xls').onclick = () => snKnopf('sn-xls', 'Excel wird erstellt …', async () => {
+$('sn-xls').onclick = () => isChef() && snKnopf('sn-xls', 'Excel wird erstellt …', async () => {
   await ladeSkript(LIB_XLS, () => !!window.XLSX);
   const h = m => Math.round((m || 0) / 60 * 100) / 100, S = SN.S;
   const kopf = ['Datum', 'Mitarbeiter', 'Auftraggeber', 'Arbeitsort', 'Auftrag', 'Von', 'Bis', 'Pause (Min.)', 'Arbeitsweg Hin + Rück (Min.)', 'Abzug −30 (Min.)', 'Zwischenfahrt (Min.)', 'Arbeitszeit (Std.)', 'Notiz / Tätigkeiten', 'Status', 'Total (Std.)'];
@@ -927,6 +959,7 @@ function amTippen() { const a = document.activeElement; return !!(a && /^(INPUT|
 let renderWartet = false;
 document.addEventListener('focusout', () => setTimeout(() => { if (renderWartet && !amTippen()) { renderWartet = false; render(); } }, 300));
 function render() {
+  document.body.classList.toggle('nurchef-druck', !isChef()); if (!isChef()) $('sn').hidden = true;
   if (!sess) return; if (amTippen()) { renderWartet = true; netUI(); return; } fillBau(); netUI();
   if (isChef()) { renderChef(); } else { renderStempel(); renderZeit(); }
   renderFotos(); renderPend(); renderMat();
