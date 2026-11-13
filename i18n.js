@@ -139,6 +139,10 @@ const TXT = {
   ankunftWort: { de: 'Ankunft', en: 'Arrival', sq: 'Mbërritja', it: 'Arrivo', ro: 'Sosire', hu: 'Érkezés' },
   feierabendWort: { de: 'Feierabend', en: 'End of work', sq: 'Mbarimi', it: 'Fine lavoro', ro: 'Sfârșit', hu: 'Munka vége' },
   abfahrtWort: { de: 'Abfahrt', en: 'Departure', sq: 'Nisja', it: 'Partenza', ro: 'Plecare', hu: 'Indulás' },
+  lieferungAn: { de: 'Lieferung an', en: 'Deliver to', sq: 'Dorëzimi në', it: 'Consegna a', ro: 'Livrare la', hu: 'Szállítás ide' },
+  liefBaustelle: { de: 'Baustelle', en: 'Site', sq: 'Kantier', it: 'Cantiere', ro: 'Șantier', hu: 'Munkahely' },
+  liefLager: { de: 'Lager Oftringen', en: 'Oftringen depot', sq: 'Magazina Oftringen', it: 'Magazzino Oftringen', ro: 'Depozitul Oftringen', hu: 'Oftringeni raktár' },
+  liefAbholung: { de: 'Wird abgeholt', en: 'Will be picked up', sq: 'Do të merret', it: 'Verrà ritirato', ro: 'Se ridică personal', hu: 'Elhozzuk' },
   installIos: { de: 'Tipp: Unten auf «Teilen» ⬆️ und dann «Zum Home-Bildschirm» – dann ist ASN wie eine App auf dem Handy.', en: 'Tip: tap «Share» ⬆️ and then «Add to Home Screen» – then ASN is like an app on your phone.', sq: 'Këshillë: shtypni «Ndaj» ⬆️ dhe pastaj «Shto në ekranin bazë» – atëherë ASN është si aplikacion në telefon.', it: 'Consiglio: tocca «Condividi» ⬆️ e poi «Aggiungi alla schermata Home» – così ASN è come un’app sul telefono.', ro: 'Sfat: apasă «Partajează» ⬆️ și apoi «Adaugă pe ecranul principal» – atunci ASN e ca o aplicație pe telefon.', hu: 'Tipp: koppints a «Megosztás» ⬆️, majd a «Főképernyőhöz adás» gombra – így az ASN olyan, mint egy alkalmazás.' },
   installAndroid: { de: 'Tipp: Im Browser-Menü ⋮ «App installieren» wählen – dann ist ASN wie eine App auf dem Handy.', en: 'Tip: in the browser menu ⋮ choose «Install app» – then ASN is like an app on your phone.', sq: 'Këshillë: në menunë ⋮ të shfletuesit zgjidhni «Instalo aplikacionin».', it: 'Consiglio: nel menu ⋮ del browser scegli «Installa app».', ro: 'Sfat: în meniul ⋮ al browserului alege «Instalează aplicația».', hu: 'Tipp: a böngésző ⋮ menüjében válaszd az «Alkalmazás telepítése» lehetőséget.' }
 };

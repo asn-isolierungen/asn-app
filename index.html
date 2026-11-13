@@ -221,6 +221,7 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
           <div class="grid3"><div><label for="m-menge" data-i18n="menge">Menge</label><input id="m-menge" inputmode="decimal" placeholder="10"></div>
             <div><label for="m-einheit" data-i18n="einheit">Einheit</label><select id="m-einheit"><option>Stk</option><option>m²</option><option>m</option><option>Rolle</option><option>Paket</option><option>Karton</option><option>Dose</option></select></div>
             <div><label for="m-bis" data-i18n="bisWann">Bis wann</label><select id="m-bis"><option value="normal" data-i18n="normal">Normal</option><option value="dringend" data-i18n="dringend">Dringend</option><option value="heute" data-i18n="heute">HEUTE</option></select></div></div>
+          <div><label for="m-lief" data-i18n="lieferungAn">Lieferung an</label><select id="m-lief"><option value="baustelle" data-i18n="liefBaustelle">Baustelle</option><option value="lager" data-i18n="liefLager">Lager Oftringen</option><option value="abholung" data-i18n="liefAbholung">Wird abgeholt</option></select></div>
           <div><label for="m-text" data-i18n="bemerkung">Bemerkung</label><input id="m-text" data-i18n-ph="matBemerkungPh" placeholder="z. B. Lieferung direkt auf Baustelle"></div>
           <button class="primary" type="button" id="m-send" data-i18n="matBestellen">Material bestellen</button>
           <div class="msg" id="m-mat" role="status"></div>
@@ -562,7 +563,7 @@ function tagItem(x, chef) {
   const chip = x._wartet ? ['c-wartet', t('wirdGesendet')] : x.status !== 'arbeit' ? ['c-abw', tg(x.status)] : !x.bis ? (x.datum < today() ? ['c-offen', t('offen')] : ['c-neu', t('laeuft')]) : ['c-ok', std(x.total) + ' h'];
   top.append(el('div', '', (chef ? (x.monteurName || '') + ' · ' : '') + wdD(x.datum) + (x.baustelle ? ' · ' + bName(x.baustelle) : '')), el('span', 'chip ' + chip[0], chip[1])); it.append(top);
   if (x.status === 'arbeit' && !x.bis) it.append(x.datum < today() ? el('div', 'loc out', t('feierabendFehlt') + ' (' + x.von + ')') : el('div', 'loc na', t('laeuftSeit') + ' ' + x.von));
-  else if (x.status === 'arbeit' && x.total != null) { it.append(rpTable(x)); if (x.arbeit) { it.append(el('div', 'txt', (!isChef() && x.arbeitOriginal) || x.arbeit)); if (isChef() && x.arbeitOriginal) it.append(el('div', 'meta', 'Original: ' + x.arbeitOriginal)); } }
+  else if (x.status === 'arbeit' && x.total != null) { it.append(rpTable(x)); if (x.arbeit) { it.append(el('div', 'txt', (!isChef() && x.arbeitOriginal) || x.arbeit)); } }
   const absL = x.abschnitte && x.abschnitte.length > 1 ? x.abschnitte : null;
   if (absL) absL.forEach((a, i) => { [locEl(a.locStart, (i === 0 ? t('beginn') : t('ankunftWort')) + ' ' + bName(a.baustelle)), locEl(a.locEnde, (i === absL.length - 1 ? t('feierabendWort') : t('abfahrtWort')) + ' ' + bName(a.baustelle))].forEach(l => l && it.append(l)); });
   else [locEl(x.locStart, t('beginn')), locEl(x.locEnde, t('feierabendWort'))].forEach(l => l && it.append(l));
@@ -606,7 +607,7 @@ function renderFotos() {
   const L = $('l-fotos'); L.innerHTML = ''; if (!bau()) { L.append(el('div', 'empty', t('bauZuerst'))); return; }
   const r = (D && D.fotos || []).filter(x => x.baustelle === bau()).sort((a, b) => b.erstellt - a.erstellt).slice(0, 40);
   if (!r.length) { L.append(el('div', 'empty', t('keineFotos'))); return; }
-  r.forEach(x => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('div', '', t(x.typ === 'vorher' ? 'vorher' : x.typ === 'nachher' ? 'nachher' : 'allgemein') + (x.pendenzNr ? ' · Nr. ' + x.pendenzNr : '') + (x.bereich ? ' · ' + ((!isChef() && orig(x.original).bereich) || x.bereich) : '')), el('span', 'meta', fmtT(x.erstellt))); it.append(top); const og = orig(x.original); if (x.text) it.append(el('div', 'txt', (!isChef() && og.text) || x.text)); if (isChef() && (og.text || og.bereich)) it.append(el('div', 'meta', 'Original: ' + [og.bereich, og.text].filter(Boolean).join(' · '))); it.append(imgs(x.fotos), el('div', 'meta', x.monteur || '')); L.append(it); });
+  r.forEach(x => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('div', '', t(x.typ === 'vorher' ? 'vorher' : x.typ === 'nachher' ? 'nachher' : 'allgemein') + (x.pendenzNr ? ' · Nr. ' + x.pendenzNr : '') + (x.bereich ? ' · ' + ((!isChef() && orig(x.original).bereich) || x.bereich) : '')), el('span', 'meta', fmtT(x.erstellt))); it.append(top); const og = orig(x.original); if (x.text) it.append(el('div', 'txt', (!isChef() && og.text) || x.text)); it.append(imgs(x.fotos), el('div', 'meta', x.monteur || '')); L.append(it); });
 }
 
 /* ====== Pendenzen ====== */
@@ -641,7 +642,7 @@ $('p-file').onchange = e => { const f = [...e.target.files]; e.target.value = ''
 /* ====== Material ====== */
 $('m-send').onclick = async () => {
   if (!bau()) { msg('m-mat', t('bauZuerst'), 'err'); return; } if (!$('m-artikel').value.trim()) { msg('m-mat', t('materialFehlt'), 'err'); return; }
-  try { const r = await senden('materialBestellen', { baustelle: bau(), artikel: $('m-artikel').value.trim(), menge: $('m-menge').value.trim(), einheit: $('m-einheit').value, bis: $('m-bis').value, text: $('m-text').value.trim() }, { offline: true });
+  try { const r = await senden('materialBestellen', { baustelle: bau(), artikel: $('m-artikel').value.trim(), menge: $('m-menge').value.trim(), einheit: $('m-einheit').value, bis: $('m-bis').value, text: $('m-text').value.trim(), lieferung: $('m-lief').value }, { offline: true });
     ['m-artikel', 'm-menge', 'm-text'].forEach(i => $(i).value = ''); msg('m-mat', r.queued ? t('gespeichertWartet') : t('bestellungOk'), 'ok'); if (!r.queued) laden(); }
   catch (e) { msg('m-mat', e.message, 'err'); }
 };
@@ -651,7 +652,7 @@ function renderMat() {
   const r = (D && D.material || []).filter(x => x.baustelle === bau()).sort((a, b) => b.erstellt - a.erstellt).slice(0, 40);
   if (!r.length) { L.append(el('div', 'empty', t('keineBestellungen'))); return; }
   r.forEach(x => { const st = x.status || 'neu'; const it = el('div', 'item' + (st === 'geliefert' ? ' done' : '')); const top = el('div', 'top');
-    const og = orig(x.original); top.append(el('div', '', (x.menge ? x.menge + ' ' + x.einheit + ' · ' : '') + ((!isChef() && og.artikel) || x.artikel)), el('span', 'chip c-' + st, mLab[st])); it.append(top, el('div', 'meta', (x.monteur || '') + ' · ' + fmtT(+x.erstellt) + (x.bis && x.bis !== 'normal' ? ' · ' + t(x.bis) : ''))); if (x.text) it.append(el('div', 'txt', (!isChef() && og.text) || x.text)); if (isChef() && (og.artikel || og.text)) it.append(el('div', 'meta', 'Original: ' + [og.artikel, og.text].filter(Boolean).join(' · ')));
+    const og = orig(x.original); top.append(el('div', '', (x.menge ? x.menge + ' ' + x.einheit + ' · ' : '') + ((!isChef() && og.artikel) || x.artikel)), el('span', 'chip c-' + st, mLab[st])); it.append(top, el('div', 'meta', (x.monteur || '') + ' · ' + t(x.lieferung === 'lager' ? 'liefLager' : x.lieferung === 'abholung' ? 'liefAbholung' : 'liefBaustelle') + ' · ' + fmtT(+x.erstellt) + (x.bis && x.bis !== 'normal' ? ' · ' + t(x.bis) : ''))); if (x.text) it.append(el('div', 'txt', (!isChef() && og.text) || x.text));
     if (isChef() && st !== 'geliefert') { const nx = st === 'bestellt' ? 'geliefert' : 'bestellt'; const b = el('button', 'ghost small', '→ ' + mLab[nx]); b.type = 'button'; b.onclick = () => chefAkt('materialStatus', { id: x.id, status: nx }, 'm-mat'); const row = el('div', 'row'); row.append(b); it.append(row); }
     L.append(it); });
 }
