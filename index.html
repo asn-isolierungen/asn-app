@@ -751,8 +751,12 @@ $('sn-open').onclick = () => {
 $('sn-close').onclick = () => { $('sn').hidden = true; }; $('sn-print').onclick = () => window.print();
 
 /* ====== Anzeige ====== */
+// Nicht neu aufbauen, solange im Chef-Bereich etwas eingetippt wird (sonst wäre die Eingabe weg)
+function amTippen() { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && ($('t-chef').contains(a))); }
+let renderWartet = false;
+document.addEventListener('focusout', () => setTimeout(() => { if (renderWartet && !amTippen()) { renderWartet = false; render(); } }, 300));
 function render() {
-  if (!sess) return; fillBau(); netUI();
+  if (!sess) return; if (amTippen()) { renderWartet = true; netUI(); return; } fillBau(); netUI();
   if (isChef()) { renderChef(); } else { renderStempel(); renderZeit(); }
   renderFotos(); renderPend(); renderMat();
   const t = lsGet('asn-tab', 'zeit'); $('bs-wrap').hidden = t === 'chef' || (t === 'zeit' && hatOffenenTag());
