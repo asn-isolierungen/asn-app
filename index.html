@@ -101,7 +101,8 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
 .install{background:var(--info-bg);color:var(--info);border-radius:12px;padding:10px 12px;font-size:14px}
 /* Stundennachweis – immer hell, druckfreundlich (keine dunklen Flächen), A4 quer */
 #sn{position:fixed;inset:0;z-index:30;background:#e9edf2;overflow:auto;padding:12px;color:#14212e}
-.sn-bar{display:flex;gap:8px;max-width:1100px;margin:0 auto 10px}
+.sn-bar{display:flex;flex-wrap:wrap;gap:8px;max-width:1100px;margin:0 auto 10px}
+.sn-left{display:flex;align-items:center;gap:18px}
 .sn-page{background:#fff;color:#14212e;max-width:1100px;margin:0 auto;font-family:Arial,Helvetica,sans-serif;font-size:12px;padding:0 22px 22px}
 .sn-head{display:flex;justify-content:space-between;align-items:center;padding:18px 0 12px;gap:16px;border-bottom:2px solid #0a71b9}
 .sn-head h3{margin:0;font-size:20px}.sn-head .s{color:#5d6b79;font-size:11px;margin-top:4px}.sn-head img{height:54px}
@@ -152,7 +153,16 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
     <div class="wrap">
       <div class="head"><h1>ASN</h1><div class="who"><div id="h-name"></div><button class="link small" id="h-out" type="button" data-i18n="abmelden">Abmelden</button></div></div>
       <div class="net okk" id="net" role="status">✓ Verbunden</div>
-      <div id="bs-wrap"><label for="baustelle" data-i18n="baustelle">Baustelle</label><select id="baustelle"><option value="" data-i18n="baustelleWaehlen">– Baustelle wählen –</option></select></div>
+      <div id="bs-wrap"><label for="baustelle" data-i18n="baustelle">Baustelle</label><select id="baustelle"><option value="" data-i18n="baustelleWaehlen">– Baustelle wählen –</option></select>
+        <details id="bn" style="margin-top:8px"><summary class="lab" style="cursor:pointer" data-i18n="bauNeu">➕ Neue Baustelle erfassen</summary>
+          <div class="card" style="margin-top:8px">
+            <div><label for="bn-name" data-i18n="bauNeuName">Name der Baustelle</label><input id="bn-name" maxlength="80" autocomplete="off" data-i18n-ph="bauNeuNamePh" placeholder="z. B. Schulhaus Rothrist"></div>
+            <div><label for="bn-str" data-i18n="bauNeuStr">Strasse und Nr.</label><input id="bn-str" maxlength="80" autocomplete="off" data-i18n-ph="bauNeuStrPh" placeholder="z. B. Bahnhofstrasse 12"></div>
+            <div class="grid2"><div><label for="bn-plz" data-i18n="plz">PLZ</label><input id="bn-plz" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="4665"></div><div><label for="bn-ort" data-i18n="ort">Ort</label><input id="bn-ort" maxlength="60" autocomplete="off" placeholder="Oftringen"></div></div>
+            <button class="primary" type="button" id="bn-save" data-i18n="bauNeuSpeichern">Baustelle speichern</button>
+            <div class="msg" id="m-bn" role="status"></div>
+            <div class="meta" data-i18n="bauNeuHinweis">Löschen kann nur der Chef.</div>
+          </div></details></div>
 
       <!-- ZEIT (Monteur) -->
       <section id="t-zeit">
@@ -273,7 +283,7 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
   </div>
 </div>
 
-<div id="sn" hidden><div class="sn-bar"><button class="primary" type="button" id="sn-print" style="width:auto">Drucken / PDF</button><button class="ghost" type="button" id="sn-close" style="background:#fff;color:#14212e">Schliessen</button></div><div class="sn-page" id="sn-page"></div></div>
+<div id="sn" hidden><div class="sn-bar"><button class="primary" type="button" id="sn-print" style="width:auto">🖨 Drucken</button><button class="primary" type="button" id="sn-pdf" style="width:auto">⬇ PDF herunterladen</button><button class="primary" type="button" id="sn-xls" style="width:auto;background:#1d7a3e;color:#fff">⬇ Excel herunterladen</button><button class="ghost" type="button" id="sn-close" style="background:#fff;color:#14212e;width:auto">Schliessen</button></div><div class="sn-page" id="sn-page"></div></div>
 <div id="lb" hidden role="dialog" aria-label="Foto"><img id="lb-img" alt="Foto gross"><button type="button" aria-label="Schliessen" id="lb-x">×</button></div>
 <nav class="tabs" role="tablist" id="nav" hidden>
   <button role="tab" data-t="zeit" aria-selected="true" id="tab-zeit"><span class="ic">🕒</span><span data-i18n="tabZeit">Zeit</span></button>
@@ -442,6 +452,18 @@ function fillBau() {
   s.length = 1; list.forEach(b => s.append(new Option(b.name, b.id))); if ([...s.options].some(o => o.value === cur)) s.value = cur;
 }
 $('baustelle').onchange = () => { lsSet('asn-bau', bau()); render(); };
+// Neue Baustelle erfassen (Monteur + Chef). Löschen nur Chef.
+$('bn-save').onclick = async () => {
+  const name = $('bn-name').value.trim(), str = $('bn-str').value.trim(), plz = $('bn-plz').value.trim(), ort = $('bn-ort').value.trim();
+  if (name.length < 3) { msg('m-bn', t('bauNeuFehltName'), 'err'); return; }
+  if (!str || !/\d/.test(str) || !/^\d{4}$/.test(plz) || ort.length < 2) { msg('m-bn', t('bauNeuFehltAdr'), 'err'); return; }
+  const b = $('bn-save'); if (b.disabled) return; b.disabled = true; msg('m-bn', t('bauNeuPruefe'));
+  try { const j = await api('baustelleNeu', { name, strasse: str, plz, ort });
+    ['bn-name', 'bn-str', 'bn-plz', 'bn-ort'].forEach(i => $(i).value = ''); lsSet('asn-bau', j.id); await laden(); $('baustelle').value = j.id; lsSet('asn-bau', j.id);
+    msg('m-bn', t('bauNeuOk'), 'ok'); render(); setTimeout(() => { $('bn').open = false; msg('m-bn', ''); }, 2500); }
+  catch (e) { msg('m-bn', e instanceof NetzFehler ? t('keinEmpfangSpaeter') : e.message, 'err'); }
+  finally { b.disabled = false; }
+};
 
 /* ====== Standort ====== */
 function standort() {
@@ -709,8 +731,8 @@ function renderChef() {
     const a = el('input'); a.value = bz.adresse || ''; a.placeholder = 'Adresse (Strasse Nr, PLZ Ort)'; const ag = el('input'); ag.value = bz.auftraggeber || ''; ag.placeholder = 'Auftraggeber';
     const row = el('div', 'row'); const sv = el('button', 'ghost small', 'Speichern'); sv.type = 'button'; sv.onclick = () => chefAkt('baustelleSetzen', { id: bz.id, adresse: a.value.trim(), auftraggeber: ag.value.trim() }, 'm-bau');
     const hier = el('button', 'ghost small', '📍 Mein Standort = Baustelle'); hier.type = 'button'; hier.onclick = async () => { const l = await standort(); if (l.fehler) { msg('m-bau', l.fehler, 'err'); return; } if (confirm('Standort von ' + bz.name + ' auf deinen jetzigen Standort setzen (Genauigkeit ' + l.acc + ' m)?')) chefAkt('baustelleSetzen', { id: bz.id, lat: l.lat, lng: l.lng }, 'm-bau'); };
-    const aus = el('button', 'ghost small', 'Ausblenden'); aus.type = 'button'; aus.onclick = () => { if (confirm(bz.name + ' für Monteure ausblenden?')) chefAkt('baustelleSetzen', { id: bz.id, aktiv: false }, 'm-bau'); };
-    row.append(sv, hier, aus); it.append(a, ag, row); B.append(it); });
+    const aus = el('button', 'ghost small', '🗑 Löschen'); aus.type = 'button'; aus.onclick = () => { if (confirm('Baustelle «' + bz.name + '» löschen?\n\nSie verschwindet für alle Monteure. Bereits erfasste Stunden, Fotos und Pendenzen bleiben gespeichert.')) chefAkt('baustelleSetzen', { id: bz.id, aktiv: false }, 'm-bau'); };
+    row.append(sv, hier, aus); if (bz.erfasstVon) it.append(el('div', 'meta', 'Neu erfasst von ' + bz.erfasstVon + (bz.erfasstAm ? ' am ' + dd(bz.erfasstAm) : '') + ' – Adresse und Auftraggeber bitte prüfen')); it.append(a, ag, row); B.append(it); });
   const F = $('c-fz'); F.innerHTML = ''; const fh = el('tr'); ['Monteur → Baustelle', 'ab', 'Hin', 'Retour', 'Quelle'].forEach(h => fh.append(el('th', '', h))); F.append(fh);
   (D.fahrzeiten || []).forEach(f => { const tr = el('tr'); [(mons.find(m => m.id === f.monteur) || {}).name + ' → ' + bName(f.baustelle), f.ab, f.hin + ' Min.', f.retour + ' Min.', f.quelle].forEach(v => tr.append(el('td', '', String(v || '')))); F.append(tr); });
 }
@@ -751,19 +773,20 @@ $('sn-open').onclick = () => {
   if (!bf) { const fehler = tage.filter(x => Math.abs(tagZeilen(x).reduce((s, z) => s + z.total, 0) - (x.total || 0)) > 0.01); if (fehler.length) alert('Achtung: Rechenkontrolle stimmt nicht bei ' + fehler.map(x => x.monteurName + ' ' + dd(x.datum)).join(', ') + ' – bitte Claude melden.'); }
   const P = $('sn-page'); P.innerHTML = '';
   const head = el('div', 'sn-head'); const l = el('div'); l.append(el('h3', '', 'ZEITERFASSUNG / STUNDENNACHWEIS'), el('div', 's', 'Erstellt am: ' + dd(today()) + ' | Arbeitszeitprotokoll'));
-  const lg = el('img'); lg.src = 'logo.png'; lg.alt = 'ASN Isolierungen'; const ad = el('div', 'adr'); ad.append(el('div', '', 'Aussteller:'), el('b', '', 'ASN Isolierungen GmbH'), el('div', '', 'Roggenstrasse 3'), el('div', '', '4665 Oftringen')); head.append(l, lg, ad); P.append(head);
+  const lg = el('img'); lg.src = 'logo.png'; lg.alt = 'ASN Isolierungen'; const ad = el('div', 'adr'); ad.append(el('div', '', 'Aussteller:'), el('b', '', 'ASN Isolierungen GmbH'), el('div', '', 'Roggenstrasse 3'), el('div', '', '4665 Oftringen')); const lw = el('div', 'sn-left'); lw.append(lg, l); head.append(lw, ad); P.append(head);
   const k1 = a ? kw(a) : '', k2 = b ? kw(b) : '';
-  P.append(el('div', 'sn-title', (k1 && k1 === k2 ? 'KW ' + k1 + ': ' : '') + dd(a) + ' bis ' + dd(b) + (mf ? ' • Mitarbeiter: ' + $('sn-m').selectedOptions[0].text : '') + (bf ? ' • Baustelle: ' + bName(bf) : '')));
+  const mName = mf ? $('sn-m').selectedOptions[0].text : '';
+  const titel = (k1 && k1 === k2 ? 'KW ' + k1 + ': ' : '') + dd(a) + ' bis ' + dd(b) + (mf ? ' • Mitarbeiter: ' + mName : '') + (bf ? ' • Baustelle: ' + bName(bf) : '');
+  P.append(el('div', 'sn-title', titel));
   const S = { p: 0, w: 0, g: 0, z: 0, a: 0, t: 0 }; zeilen.forEach(z => { S.p += z.pause; S.w += z.weg || 0; S.g += z.abzug || 0; S.z += z.zw || 0; S.a += z.arbeit; S.t += z.total; });
+  SN = { zeilen, S, titel, datei: ('Stundennachweis ' + dd(a) + ' bis ' + dd(b) + (mName ? ' ' + mName : '') + (bf ? ' ' + bName(bf) : '')).replace(/[\\/:*?"<>|]/g, '-').trim() };
   const bx = el('div', 'sn-boxes'); bx.style.gridTemplateColumns = 'repeat(7,1fr)';
   [['Anzahl Einträge', zeilen.length + ' Datensätze'], ['Gesamt-Pause', S.p + ' Min. (' + std(S.p) + ' h)'], ['Arbeitsweg total', S.w + ' Min. (' + std(S.w) + ' h)'], ['Abzug Weg (−30 Min.)', (S.g ? '−' : '') + S.g + ' Min. (' + std(S.g) + ' h)'], ['Zwischenfahrten', S.z + ' Min. (' + std(S.z) + ' h)'], ['Arbeitszeit netto', std(S.a) + ' Std.'], ['Total', std(S.t) + ' Std.']]
     .forEach(([kk, v], i) => { const dv = el('div'); dv.append(el('span', '', kk), el('b', i === 3 ? 'or' : i === 6 ? 'bl' : '', v)); bx.append(dv); }); P.append(bx);
   const t = el('table', 'sn-t'); const hr = el('tr');
   [['Datum'], ['Mitarbeiter'], ['Auftraggeber'], ['Arbeitsort'], ['Zeit'], ['Pause', 'n'], ['Arbeitsweg (Hin- und Rückfahrt)', 'n'], ['Abzug (−30m)', 'n'], ['Zwischen­fahrt', 'n'], ['Arbeitszeit', 'n'], ['Notiz / Tätigkeiten'], ['Status'], ['Total', 'n']].forEach(([h, c]) => hr.append(el('th', c || '', h))); t.append(hr);
   zeilen.forEach(z => { const x = z.x, bs = (D.baustellen || []).find(q => q.id === z.a.baustelle) || {}; const tr = el('tr'); const mt = el('td'); mt.append(el('strong', '', x.monteurName));
-    const st = el('td'); st.append(el('div', '', x.abgerechnet ? 'Abgerechnet' : 'Offen'));
-    [['Beginn', z.a.locStart || (z.i === 0 ? x.locStart : null)], ['Ende', z.a.locEnde || (z.i === z.n - 1 ? x.locEnde : null)]].forEach(([w, lo]) => { if (lo && lo.status === 'out') st.append(el('div', 'rd', '⚠ ' + w + ' ' + (lo.dist >= 1000 ? (lo.dist / 1000).toFixed(1) + ' km' : lo.dist + ' m') + ' entfernt')); });
-    if (x.nachgetragen) st.append(el('div', 'rd', 'nachgetragen')); if (x.ab === 'FEHLT') st.append(el('div', 'rd', 'Fahrzeit fehlt'));
+    const st = el('td'); snStatus(z).forEach(([s, rot]) => st.append(el('div', rot ? 'rd' : '', s)));
     const zwTxt = z.i === 0 ? '' : (z.zw == null ? 'fehlt' : z.zw + ' min');
     tr.append(el('td', '', dd(x.datum)), mt, el('td', '', bs.auftraggeber || '–'), el('td', '', bs.adresse || bs.name || ''), el('td', '', z.a.von + '–' + z.a.bis),
       el('td', 'n', z.pause + ' min'), el('td', 'n', z.weg == null ? 'fehlt' : z.weg + ' min'), el('td', 'n or', z.abzug ? '−' + z.abzug + ' min' : '0 min'), el('td', 'n', zwTxt),
@@ -776,7 +799,74 @@ $('sn-open').onclick = () => {
   const sig = el('div', 'sn-sig'); sig.append(el('span', ''), el('div', '', 'Datum, Unterschrift Auftraggeber / Bauleiter')); P.append(sig, el('div', 'sn-foot', 'ASN Isolierungen GmbH • Roggenstrasse 3, 4665 Oftringen'));
   $('sn').hidden = false; window.scrollTo(0, 0);
 };
+// Status-Texte einer Zeile (für Tabelle und Excel gleich): [Text, rot?]
+function snStatus(z) { const x = z.x, r = [[x.abgerechnet ? 'Abgerechnet' : 'Offen', false]];
+  [['Beginn', z.a.locStart || (z.i === 0 ? x.locStart : null)], ['Ende', z.a.locEnde || (z.i === z.n - 1 ? x.locEnde : null)]].forEach(([w, lo]) => { if (lo && lo.status === 'out') r.push(['⚠ ' + w + ' ' + (lo.dist >= 1000 ? (lo.dist / 1000).toFixed(1) + ' km' : lo.dist + ' m') + ' entfernt', true]); });
+  if (x.nachgetragen) r.push(['nachgetragen', true]); if (x.ab === 'FEHLT') r.push(['Fahrzeit fehlt', true]); return r; }
+let SN = null;
+const LIB_PDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', LIB_AT = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js', LIB_XLS = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+function ladeSkript(src, ist) { return new Promise((ok, no) => { if (ist()) return ok(); const s = document.createElement('script'); s.src = src; s.onload = () => ist() ? ok() : no(new Error('Download-Programm nicht bereit.')); s.onerror = () => { s.remove(); no(new Error('Download-Programm konnte nicht geladen werden – Internet prüfen.')); }; document.head.append(s); }); }
+async function snKnopf(id, txt, fn) { const b = $(id), alt = b.textContent; if (b.disabled) return; b.disabled = true; b.textContent = txt; try { await fn(); } catch (e) { alert('Fehler: ' + (e && e.message || e)); } finally { b.disabled = false; b.textContent = alt; } }
 $('sn-close').onclick = () => { $('sn').hidden = true; }; $('sn-print').onclick = () => window.print();
+$('sn-pdf').onclick = () => snKnopf('sn-pdf', 'PDF wird erstellt …', async () => {
+  await ladeSkript(LIB_PDF, () => !!(window.jspdf && window.jspdf.jsPDF));
+  await ladeSkript(LIB_AT, () => !!(window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable));
+  const P = (s) => String(s == null ? '' : s).replace(/[−–—]/g, '-').replace(/•/g, '|').replace(/⚠\s?/g, '! ').replace(/[^\x00-\xFF€]/g, '');
+  const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }), W = 297, M = 10, S = SN.S;
+  const BL = [10, 113, 185], OR = [196, 90, 0], GR = [93, 107, 121], SW = [20, 33, 46];
+  // Kopf: Logo ganz links, daneben Titel, rechts Aussteller
+  let lx = M; const lo = await logoDaten();
+  if (lo) { const h = 14, w = h * lo.w / lo.h; doc.addImage(lo.d, 'PNG', M, 9, w, h); lx = M + w + 6; }
+  doc.setTextColor(...SW); doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('ZEITERFASSUNG / STUNDENNACHWEIS', lx, 15.5);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GR); doc.text(P('Erstellt am: ' + dd(today()) + ' | Arbeitszeitprotokoll'), lx, 20.5);
+  doc.text('Aussteller:', W - M, 11, { align: 'right' }); doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...SW); doc.text('ASN Isolierungen GmbH', W - M, 15.5, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GR); doc.text('Roggenstrasse 3', W - M, 19.5, { align: 'right' }); doc.text('4665 Oftringen', W - M, 23.5, { align: 'right' });
+  doc.setDrawColor(...BL); doc.setLineWidth(0.6); doc.line(M, 27, W - M, 27);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...SW); doc.text(P(SN.titel), M, 34);
+  // Boxen
+  const bxs = [['ANZAHL EINTRÄGE', SN.zeilen.length + ' Datensätze'], ['GESAMT-PAUSE', S.p + ' Min. (' + std(S.p) + ' h)'], ['ARBEITSWEG TOTAL', S.w + ' Min. (' + std(S.w) + ' h)'], ['ABZUG WEG (-30 MIN.)', (S.g ? '-' : '') + S.g + ' Min. (' + std(S.g) + ' h)'], ['ZWISCHENFAHRTEN', S.z + ' Min. (' + std(S.z) + ' h)'], ['ARBEITSZEIT NETTO', std(S.a) + ' Std.'], ['TOTAL', std(S.t) + ' Std.']];
+  const bw = (W - 2 * M) / 7; doc.setDrawColor(200, 208, 216); doc.setLineWidth(0.25); doc.roundedRect(M, 38, W - 2 * M, 13, 1.5, 1.5);
+  bxs.forEach(([k, v], i) => { const x = M + i * bw; if (i) doc.line(x, 38, x, 51); doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...GR); doc.text(P(k), x + 2.5, 42.5);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...(i === 3 ? OR : i === 6 ? BL : SW)); doc.text(P(v), x + 2.5, 48); });
+  // Tabelle
+  const kopf = ['Datum', 'Mitarbeiter', 'Auftraggeber', 'Arbeitsort', 'Zeit', 'Pause', 'Arbeitsweg (Hin- und Rückfahrt)', 'Abzug (-30m)', 'Zwischen- fahrt','Arbeitszeit', 'Notiz / Tätigkeiten', 'Status', 'Total'];
+  const rot = [];
+  const body = SN.zeilen.map((z, ri) => { const x = z.x, bs = (D.baustellen || []).find(q => q.id === z.a.baustelle) || {}; const st = snStatus(z); if (st.some(s => s[1])) rot.push(ri);
+    return [dd(x.datum), x.monteurName || '', bs.auftraggeber || '-', bs.adresse || bs.name || '', (z.a.von || '') + '-' + (z.a.bis || ''), z.pause + ' min', z.weg == null ? 'fehlt' : z.weg + ' min', z.abzug ? '-' + z.abzug + ' min' : '0 min',
+      z.i === 0 ? '' : (z.zw == null ? 'fehlt' : z.zw + ' min'), std(z.arbeit) + ' h', z.i === z.n - 1 ? (x.arbeit || '-') : '', st.map(s => s[0]).join('\n'), std(z.total) + ' h'].map(P); });
+  if (!body.length) body.push([{ content: 'Keine Arbeitstage in diesem Zeitraum.', colSpan: 13 }]);
+  const foot = [[{ content: 'Gesamtsumme:', colSpan: 5, styles: { halign: 'right' } }, S.p + ' min', S.w + ' min', (S.g ? '-' : '') + S.g + ' min', S.z + ' min', std(S.a) + ' h', '', '', std(S.t) + ' h']];
+  const n = { halign: 'right' }, cw = [18, 24, 22, 34, 18, 13, 20, 15, 17, 17, 40, 22, 17];
+  const cs = {}; cw.forEach((w, i) => { cs[i] = Object.assign({ cellWidth: w }, [5, 6, 7, 8, 9, 12].includes(i) ? n : {}); });
+  doc.autoTable({ startY: 55, head: [kopf.map(P)], body, foot, theme: 'plain', margin: { left: M, right: M, bottom: 16 }, columnStyles: cs, showFoot: 'lastPage',
+    styles: { font: 'helvetica', fontSize: 7, cellPadding: 1.4, textColor: SW, lineColor: [210, 216, 222], lineWidth: { bottom: 0.2 }, valign: 'top' },
+    headStyles: { fontStyle: 'bold', lineColor: SW, lineWidth: { top: 0.4, bottom: 0.4 } }, footStyles: { fontStyle: 'bold', lineColor: SW, lineWidth: { top: 0.4, bottom: 0.4 } },
+    didParseCell: d => { if (d.section !== 'head') { if (d.column.index === 12) d.cell.styles.textColor = BL; if (d.column.index === 7) d.cell.styles.textColor = OR; if (d.section === 'body' && d.column.index === 11 && rot.includes(d.row.index)) d.cell.styles.textColor = [200, 30, 30]; } if (d.section !== 'body' && [5, 6, 7, 8, 9, 12].includes(d.column.index)) d.cell.styles.halign = 'right'; } });
+  let y = doc.lastAutoTable.finalY + 6;
+  const calc = doc.splitTextToSize(P('Berechnung: Arbeitszeit netto (Pause abgezogen) + Arbeitsweg Hin- und Rückfahrt − Abzug 30 Min. pro Arbeitstag (höchstens so viel wie gefahren, nie Minus) + Zwischenfahrten zwischen Baustellen (voll bezahlt) = Total. Arbeitsweg ab Wohnort oder Lager Oftringen, je nachdem was kürzer ist (Google Maps).'), W - 2 * M);
+  if (y + 30 > 210 - 16) { doc.addPage(); y = 20; }
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...SW); doc.text(calc, M, y);
+  y += calc.length * 3.5 + 16; doc.setDrawColor(...GR); doc.setLineWidth(0.25); doc.setLineDashPattern([1, 1], 0); doc.line(170, y, W - M, y); doc.setLineDashPattern([], 0);
+  doc.setFontSize(8); doc.setTextColor(...GR); doc.text('Datum, Unterschrift Auftraggeber / Bauleiter', 170, y + 4.5);
+  const np = doc.getNumberOfPages(); for (let i = 1; i <= np; i++) { doc.setPage(i); doc.setFontSize(7); doc.setTextColor(...GR); doc.text('ASN Isolierungen GmbH | Roggenstrasse 3, 4665 Oftringen', M, 203); doc.text('Seite ' + i + ' von ' + np, W - M, 203, { align: 'right' }); }
+  doc.save(SN.datei + '.pdf');
+});
+function logoDaten() { return new Promise(ok => { const i = new Image(); i.onload = () => { try { const c = document.createElement('canvas'); c.width = i.naturalWidth; c.height = i.naturalHeight; c.getContext('2d').drawImage(i, 0, 0); ok({ d: c.toDataURL('image/png'), w: i.naturalWidth, h: i.naturalHeight }); } catch (e) { ok(null); } }; i.onerror = () => ok(null); i.src = 'logo.png'; }); }
+$('sn-xls').onclick = () => snKnopf('sn-xls', 'Excel wird erstellt …', async () => {
+  await ladeSkript(LIB_XLS, () => !!window.XLSX);
+  const h = m => Math.round((m || 0) / 60 * 100) / 100, S = SN.S;
+  const kopf = ['Datum', 'Mitarbeiter', 'Auftraggeber', 'Arbeitsort', 'Von', 'Bis', 'Pause (Min.)', 'Arbeitsweg Hin + Rück (Min.)', 'Abzug −30 (Min.)', 'Zwischenfahrt (Min.)', 'Arbeitszeit (Std.)', 'Notiz / Tätigkeiten', 'Status', 'Total (Std.)'];
+  const rows = [['ZEITERFASSUNG / STUNDENNACHWEIS'], ['ASN Isolierungen GmbH, Roggenstrasse 3, 4665 Oftringen'], [SN.titel], ['Erstellt am: ' + dd(today())], [], kopf];
+  SN.zeilen.forEach(z => { const x = z.x, bs = (D.baustellen || []).find(q => q.id === z.a.baustelle) || {};
+    rows.push([dd(x.datum), x.monteurName || '', bs.auftraggeber || '', bs.adresse || bs.name || '', z.a.von || '', z.a.bis || '', z.pause, z.weg == null ? 'fehlt' : z.weg, z.abzug ? -z.abzug : 0,
+      z.i === 0 ? '' : (z.zw == null ? 'fehlt' : z.zw), h(z.arbeit), z.i === z.n - 1 ? (x.arbeit || '') : '', snStatus(z).map(s => s[0]).join('; '), h(z.total)]); });
+  rows.push(['Gesamtsumme', '', '', '', '', '', S.p, S.w, S.g ? -S.g : 0, S.z, h(S.a), '', '', h(S.t)]);
+  rows.push([], ['Berechnung: Arbeitszeit netto (Pause abgezogen) + Arbeitsweg Hin- und Rückfahrt − Abzug 30 Min. pro Arbeitstag (höchstens so viel wie gefahren, nie Minus) + Zwischenfahrten (voll bezahlt) = Total.']);
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [11, 22, 20, 30, 7, 7, 10, 14, 11, 12, 12, 40, 26, 11].map(w => ({ wch: w }));
+  for (let r = 6; r < 6 + SN.zeilen.length + 1; r++) [10, 13].forEach(c => { const z = ws[XLSX.utils.encode_cell({ r, c })]; if (z && z.t === 'n') z.z = '0.00'; });
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Stundennachweis'); XLSX.writeFile(wb, SN.datei + '.xlsx');
+});
 
 /* ====== Anzeige ====== */
 // Nicht neu aufbauen, solange im Chef-Bereich etwas eingetippt wird (sonst wäre die Eingabe weg)
