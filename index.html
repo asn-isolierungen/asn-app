@@ -246,7 +246,11 @@ nav.tabs .ic{font-size:22px;line-height:1}nav.tabs button[aria-selected="true"]{
           <div class="grid2"><div><label for="n-status">Tag</label><select id="n-status"><option value="arbeit">Arbeit</option><option value="frei">Frei</option><option value="krank">Krank</option><option value="ferien">Ferien</option><option value="unfall">Unfall</option><option value="feiertag">Feiertag</option></select></div><div><label for="n-bau">Baustelle</label><select id="n-bau"></select></div></div>
           <div id="n-arb"><div class="grid2"><div><label for="n-von">Von</label><input type="time" id="n-von"></div><div><label for="n-bis">Bis</label><input type="time" id="n-bis"></div></div>
             <div style="margin-top:10px"><span class="lab">Pause</span><div class="seg" id="n-pause"><button type="button" class="ghost small" data-v="0" aria-pressed="false">Keine</button><button type="button" class="ghost small" data-v="30" aria-pressed="false">30 Min.</button><button type="button" class="ghost small" data-v="60" aria-pressed="false">1 Std.</button><button type="button" class="ghost small" data-v="90" aria-pressed="false">1,5 Std.</button></div></div>
-            <div style="margin-top:10px"><label for="n-text">Tätigkeit</label><input id="n-text"></div></div>
+            <div style="margin-top:10px"><label for="n-text">Tätigkeit</label><input id="n-text"></div>
+            <details id="n-zwei" style="margin-top:10px"><summary class="lab" style="cursor:pointer">2. Baustelle am gleichen Tag (falls)</summary>
+              <div style="margin-top:8px"><label for="n-bau2">2. Baustelle</label><select id="n-bau2"></select></div>
+              <div class="grid2" style="margin-top:8px"><div><label for="n-von2">Von</label><input type="time" id="n-von2"></div><div><label for="n-bis2">Bis</label><input type="time" id="n-bis2"></div></div>
+              <p class="hint">Die Fahrt zwischen den Baustellen rechnet die App (Google Maps, höchstens die Zeit zwischen Ende 1 und Beginn 2).</p></details></div>
           <button class="ghost" type="button" id="n-save">Speichern (wird als «nachgetragen» vermerkt)</button>
           <div class="msg" id="m-nach" role="status"></div>
         </div>
@@ -457,6 +461,7 @@ function locLokal(l, bid) { // Anzeige solange offline (Server prüft nach)
 function locEl(l, was) {
   if (!l) return null;
   if (l.status === 'in') return el('div', 'loc in', '✅ ' + was + ': ' + t('aufBaustelle') + ' (' + l.dist + ' m)');
+  if (l.status === 'ok') return el('div', 'loc in', '✅ ' + was + ': vom Chef bestätigt');
   if (l.status === 'out') return el('div', 'loc out', '⚠️ ' + was + ': ' + (l.dist >= 1000 ? (l.dist / 1000).toFixed(1).replace('.', ',') + ' km' : l.dist + ' m') + ' ' + t('entfernt'));
   const infoKey = { 'Standort nicht freigegeben': 'locNichtFrei', 'Standort nicht ermittelt': 'locNichtErmittelt', 'Baustellen-Standort fehlt': 'locBauFehlt', 'kein Standort': 'locKein', 'Standort auf diesem Gerät nicht verfügbar': 'locNichtVerfuegbar' }[l.info || 'kein Standort'];
   return el('div', 'loc na', '• ' + was + ': ' + (infoKey ? t(infoKey) : l.info));
@@ -558,6 +563,15 @@ function rpTable(x) {
 const hmMin = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? +m[1] * 60 + +m[2] : null; };
 function orig(s) { try { return s ? (typeof s === 'string' ? JSON.parse(s) : s) : {}; } catch (e) { return {}; } }
 function dauer(a) { const v = hmMin(a.von), b = hmMin(a.bis); if (v == null || b == null) return 0; return (b < v ? b + 1440 : b) - v; }
+function korrigieren(x) {
+  $('n-mon').value = x.monteur; $('n-datum').value = x.datum; $('n-status').value = x.status; $('n-arb').hidden = x.status !== 'arbeit';
+  const abs = x.abschnitte && x.abschnitte.length ? x.abschnitte : [{ baustelle: x.baustelle, von: x.von, bis: x.bis }];
+  $('n-bau').value = abs[0].baustelle || ''; $('n-von').value = abs[0].von || ''; $('n-bis').value = abs[0].bis || '';
+  $('n-bau2').value = abs[1] ? abs[1].baustelle : ''; $('n-von2').value = abs[1] ? abs[1].von : ''; $('n-bis2').value = abs[1] ? abs[1].bis : ''; $('n-zwei').open = !!abs[1];
+  if (x.pause != null) setSeg('n-pause', x.pause); $('n-text').value = x.arbeit || '';
+  msg('m-nach', 'Eintrag von ' + x.monteurName + ' am ' + dd(x.datum) + ' geladen – ändern und Speichern tippen.', 'ok'); $('n-mon').closest('.card').scrollIntoView({ behavior: 'smooth' });
+}
+function setSeg(id, v) { $(id).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); }
 function tagItem(x, chef) {
   const it = el('div', 'item'); const top = el('div', 'top');
   const chip = x._wartet ? ['c-wartet', t('wirdGesendet')] : x.status !== 'arbeit' ? ['c-abw', tg(x.status)] : !x.bis ? (x.datum < today() ? ['c-offen', t('offen')] : ['c-neu', t('laeuft')]) : ['c-ok', std(x.total) + ' h'];
@@ -570,6 +584,10 @@ function tagItem(x, chef) {
   if (x.offline) it.append(el('div', 'meta', 'Offline gestempelt (Zeit vom Handy)'));
   if (x.nachgetragen) it.append(el('div', 'meta red', 'Vom Chef nachgetragen / korrigiert'));
   if (chef && x.verlauf && x.verlauf.length) it.append(el('div', 'meta', 'Verlauf: ' + x.verlauf.map(v => fmtT(v.am) + ' ' + v.was + ' (' + v.von + ')').join(' · ')));
+  if (chef && isChef() && !x._wartet) { const row = el('div', 'row'); const k = el('button', 'ghost small', '✏️ Korrigieren'); k.type = 'button'; k.onclick = () => korrigieren(x); row.append(k);
+    const locs = [x.locStart, x.locEnde].concat((x.abschnitte || []).reduce((a, s) => a.concat([s.locStart, s.locEnde]), [])).filter(Boolean);
+    if (locs.some(l => l.status === 'out' || l.status === 'na')) { const s = el('button', 'ghost small', '📍 Standort bestätigen'); s.type = 'button'; s.onclick = () => { if (confirm('Standort für ' + x.monteurName + ' am ' + dd(x.datum) + ' als in Ordnung bestätigen?')) chefAkt('standortBestaetigen', { id: x.id }, 'm-nach'); }; row.append(s); }
+    it.append(row); }
   return it;
 }
 function renderZeit() {
@@ -678,7 +696,7 @@ function renderChef() {
   if (!r.length) { const tr = el('tr'); const td = el('td', '', 'Keine Einträge in diesem Zeitraum.'); td.colSpan = 9; tr.append(td); t.append(tr); }
   const L = $('c-rap'); L.innerHTML = ''; r.slice().sort((a, b) => b.datum.localeCompare(a.datum)).slice(0, 80).forEach(x => L.append(tagItem(x, true)));
   const mons = (D.monteure || []).slice().sort((a, b) => a.name.localeCompare(b.name)), baus = (D.baustellen || []).slice().sort((a, b) => (a.sort || 99) - (b.sort || 99));
-  [['sn-m', mons, 'Alle'], ['n-mon', mons, null], ['sn-b', baus, 'Alle'], ['n-bau', baus, null]].forEach(([id, list, alle]) => { const s = $(id), c = s.value; s.length = 0; if (alle) s.append(new Option(alle, '')); list.forEach(x => s.append(new Option(x.name, x.id))); if ([...s.options].some(o => o.value === c)) s.value = c; });
+  [['sn-m', mons, 'Alle'], ['n-mon', mons, null], ['sn-b', baus, 'Alle'], ['n-bau', baus, null], ['n-bau2', baus, '– keine –']].forEach(([id, list, alle]) => { const s = $(id), c = s.value; s.length = 0; if (alle) s.append(new Option(alle, '')); list.forEach(x => s.append(new Option(x.name, x.id))); if ([...s.options].some(o => o.value === c)) s.value = c; });
   const M = $('c-mont'); M.innerHTML = '';
   mons.forEach(m => { const it = el('div', 'item'); const top = el('div', 'top'); top.append(el('strong', '', m.name), el('span', 'chip ' + (m.aktiv ? 'c-ok' : 'c-offen'), m.aktiv ? 'Aktiv' : 'Gesperrt')); it.append(top);
     const w = el('input'); w.value = m.wohnort || ''; w.placeholder = 'Wohnadresse'; w.setAttribute('aria-label', 'Wohnadresse ' + m.name); it.append(w);
@@ -703,7 +721,8 @@ $('c-pinsave').onclick = () => { const p = $('c-newpin').value.trim(); if (!/^\d
 seg('n-pause'); $('n-datum').value = today();
 $('n-status').onchange = () => { $('n-arb').hidden = $('n-status').value !== 'arbeit'; };
 $('n-save').onclick = () => { const st = $('n-status').value, d = { monteur: $('n-mon').value, datum: $('n-datum').value, status: st };
-  if (st === 'arbeit') { Object.assign(d, { baustelle: $('n-bau').value, von: $('n-von').value, bis: $('n-bis').value, pause: segVal('n-pause') == null ? null : +segVal('n-pause'), arbeit: $('n-text').value.trim() }); if (d.pause == null) { msg('m-nach', 'Pause wählen.', 'err'); return; } if (!d.von || !d.bis) { msg('m-nach', 'Von/Bis eingeben.', 'err'); return; } }
+  if (st === 'arbeit') { Object.assign(d, { baustelle: $('n-bau').value, von: $('n-von').value, bis: $('n-bis').value, pause: segVal('n-pause') == null ? null : +segVal('n-pause'), arbeit: $('n-text').value.trim() });
+    if ($('n-bau2').value) { if (!$('n-von2').value || !$('n-bis2').value) { msg('m-nach', '2. Baustelle: Von/Bis eingeben.', 'err'); return; } Object.assign(d, { baustelle2: $('n-bau2').value, von2: $('n-von2').value, bis2: $('n-bis2').value }); } if (d.pause == null) { msg('m-nach', 'Pause wählen.', 'err'); return; } if (!d.von || !d.bis) { msg('m-nach', 'Von/Bis eingeben.', 'err'); return; } }
   if (!confirm('Eintrag für ' + $('n-mon').selectedOptions[0].text + ' am ' + dd(d.datum) + ' speichern? Wird als «nachgetragen» vermerkt.')) return; chefAkt('nachtragen', d, 'm-nach'); };
 
 /* ====== Stundennachweis (druckfreundlich) ====== */
