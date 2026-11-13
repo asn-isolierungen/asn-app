@@ -407,15 +407,17 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { fl
 let ladeT = null;
 async function laden() {
   if (!sess) return;
-  try { const j = await api('daten', {}); D = j; lsSet('asn-daten', j); if (j.ich) { sess.name = j.ich.name; lsSet('asn-sess', sess); } render(); }
-  catch (e) { if (!(e instanceof NetzFehler)) msg('m-stempel', e.message, 'err'); render(); }
+  const s0 = sess;
+  try { const j = await api('daten', {}); if (!sess || sess !== s0) return; // inzwischen abgemeldet / andere Anmeldung → nichts überschreiben
+    D = j; lsSet('asn-daten', j); if (j.ich) { sess.name = j.ich.name; lsSet('asn-sess', sess); } render(); }
+  catch (e) { if (!sess) return; if (!(e instanceof NetzFehler)) msg('m-stempel', e.message, 'err'); render(); }
 }
 
 /* ====== Anmeldung ====== */
 let chefMode = false;
 async function namenLaden() {
   const s = $('l-name'); let liste = lsGet('asn-namen', []);
-  try { const j = await api('namen', {}); liste = j.monteure; lsSet('asn-namen', liste); } catch (e) { if (!liste.length) msg('m-login', e.message, 'err'); }
+  try { const j = await api('namen', {}); if (Array.isArray(j.monteure)) { liste = j.monteure; lsSet('asn-namen', liste); } } catch (e) { if (!liste.length) msg('m-login', e.message, 'err'); }
   const cur = s.value; s.length = 1; liste.forEach(m => s.append(new Option(m.name, m.id))); s.value = cur;
 }
 $('l-chef').onclick = () => { chefMode = !chefMode; $('l-name-wrap').hidden = chefMode; $('l-chef').textContent = chefMode ? 'Monteur-Anmeldung' : 'Jehon Avdiu'; msg('m-login', chefMode ? 'PIN Jehon Avdiu eingeben.' : ''); };
@@ -436,6 +438,9 @@ function abmelden(t) {
 }
 function zeigeSperre() { $('v-login').hidden = true; $('v-app').hidden = true; $('nav').hidden = true; $('v-block').hidden = false; }
 $('h-out').onclick = () => abmelden(); $('b-out').onclick = () => { sess = null; lsSet('asn-sess', null); zeige(); };
+// Anmeldung in einem anderen Fenster/Tab desselben Browsers → dieses Fenster sofort angleichen (nie mit fremder/alter Anmeldung weiterarbeiten)
+window.addEventListener('storage', e => { if (e.key !== 'asn-sess') return; const n = lsGet('asn-sess', null);
+  if (JSON.stringify(n) === JSON.stringify(sess)) return; sess = n; D = n ? lsGet('asn-daten', null) : null; zeige(); if (sess) laden(); });
 function zeige() {
   $('v-block').hidden = true; $('v-login').hidden = !!sess; $('v-app').hidden = !sess; $('nav').hidden = !sess;
   $('tab-chef').hidden = !isChef();
